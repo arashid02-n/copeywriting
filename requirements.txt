@@ -1,0 +1,9 @@
+streamlit
+anthropic
+langchain
+langchain-anthropic
+beautifulsoup4
+requests
+python-dotenv
+PyGithub
+gitpython
