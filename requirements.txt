@@ -1,7 +1,6 @@
 streamlit
-anthropic
-langchain
-langchain-anthropic
+transformers
+torch
 beautifulsoup4
 requests
 python-dotenv
