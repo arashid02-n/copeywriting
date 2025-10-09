@@ -2,40 +2,68 @@ import streamlit as st
 from agents import run_agents
 from github_utils import update_github_file
 
-# Streamlit page setup
-st.set_page_config(page_title="Copywriting Improvement AI", page_icon="✍️", layout="centered")
+# -------------------------------
+# Streamlit Page Configuration
+# -------------------------------
+st.set_page_config(
+    page_title="Copywriting Improvement AI",
+    page_icon="✍️",
+    layout="centered"
+)
 
 st.title("✍️ Copywriting Improvement AI")
+st.markdown("Welcome! Let's improve your website content using AI 💡")
 
-# Input form for user
+# -------------------------------
+# Input Form
+# -------------------------------
 with st.form("input_form"):
-    offer_definition = st.text_area("Offer definition")
-    page_link = st.text_input("Link of the page")
-    past_experience = st.text_area("Past experience")
-    audience_characteristics = st.text_area("Audience characteristics")
-    problem_area = st.selectbox(
-        "Which part do you want to improve?",
-        ["Headline", "Sub-headline", "CTA"]
+    # 1️⃣ Ask user what content they want to change
+    content_target = st.text_area(
+        "What part of your website do you want to change?",
+        placeholder="Example: Homepage headline, product section, CTA button text..."
     )
-    submitted = st.form_submit_button("Generate Suggestions")
 
-if submitted:
-    st.info("Generating suggestions... please wait ⏳")
-    
-    # Run multi-agent pipeline
-    suggestions = run_agents(
-        offer_definition,
-        page_link,
-        past_experience,
-        audience_characteristics,
-        problem_area
+    # 2️⃣ Ask for the website link (or allow file upload)
+    st.markdown("Provide your website link **or** upload the page files (HTML, etc.)")
+
+    page_link = st.text_input("Website Link (optional)")
+    uploaded_file = st.file_uploader("Upload your HTML or content file (optional)", type=["html", "htm", "txt"])
+
+    # 3️⃣ Ask what the user wants the new result to look like
+    desired_outcome = st.text_area(
+        "Describe how you want the improved content to be:",
+        placeholder="Example: More persuasive, clearer message, better conversion rate..."
     )
-    
-    st.subheader("Suggestions")
-    choice = st.radio("Pick one:", suggestions)
-    
+
+    # Submit button
+    submitted = st.form_submit_button("Generate Improvement Suggestions")
+
+# -------------------------------
+# Processing after submission
+# -------------------------------
+if submitted:
+    st.info("Generating AI suggestions... please wait ⏳")
+
+    # Extract uploaded file content if provided
+    page_content = None
+    if uploaded_file is not None:
+        page_content = uploaded_file.read().decode("utf-8")
+
+    # Run the AI pipeline (multi-agent system)
+    suggestions = run_agents(
+        content_target=content_target,
+        page_link=page_link,
+        page_content=page_content,
+        desired_outcome=desired_outcome
+    )
+
+    # Show suggestions to user
+    st.subheader("💡 AI Suggestions")
+    choice = st.radio("Select the one you like best:", suggestions)
+
+    # Confirm and update GitHub
     if st.button("Apply & Update Code"):
-        # Example: Update GitHub file (simplified demo)
-        file_path = "index.html"  # you can adjust this later
+        file_path = "index.html"  # You can make this dynamic later
         update_github_file(file_path, choice)
-        st.success("✅ Code updated on GitHub!")
+        st.success("✅ Code updated successfully on GitHub!")
