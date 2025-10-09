@@ -1,6 +1,9 @@
 import streamlit as st
 from agents import run_agents
 from github_utils import update_github_file
+from dotenv import load_dotenv
+load_dotenv()
+
 
 # -------------------------------
 # Streamlit Page Configuration
