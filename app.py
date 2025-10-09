@@ -18,6 +18,12 @@ st.title("✍️ Copywriting Improvement AI")
 st.markdown("Welcome! Let's improve your website content using AI 💡")
 
 # -------------------------------
+# Initialize Chat History
+# -------------------------------
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+# -------------------------------
 # Input Form
 # -------------------------------
 with st.form("input_form"):
@@ -70,3 +76,30 @@ if submitted:
         file_path = "index.html"  # You can make this dynamic later
         update_github_file(file_path, choice)
         st.success("✅ Code updated successfully on GitHub!")
+
+        # -------------------------------
+        # Update Chat History
+        # -------------------------------
+        st.session_state.chat_history.append({
+            "content_target": content_target,
+            "page_link": page_link,
+            "desired_outcome": desired_outcome,
+            "uploaded_file_name": uploaded_file.name if uploaded_file else None,
+            "suggestions": suggestions,
+            "chosen": choice
+        })
+
+# -------------------------------
+# Display Chat History
+# -------------------------------
+if st.session_state.chat_history:
+    st.subheader("💬 Chat History")
+    for i, chat in enumerate(st.session_state.chat_history[::-1], 1):
+        st.markdown(f"**Interaction {i}:**")
+        st.markdown(f"- **Content Target:** {chat['content_target']}")
+        st.markdown(f"- **Page Link:** {chat['page_link']}")
+        st.markdown(f"- **Uploaded File:** {chat['uploaded_file_name']}")
+        st.markdown(f"- **Desired Outcome:** {chat['desired_outcome']}")
+        st.markdown(f"- **Suggestions:** {chat['suggestions']}")
+        st.markdown(f"- **Chosen:** {chat['chosen']}")
+        st.markdown("---")
