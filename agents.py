@@ -1,6 +1,9 @@
 import os
+from dotenv import load_dotenv  # Load environment variables from .env
 import requests
 from typing import List, Optional
+# Load .env file automatically
+load_dotenv()
 
 # ------------------------------
 # Configuration from environment
