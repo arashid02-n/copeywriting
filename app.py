@@ -1,5 +1,11 @@
 # app.py
 import streamlit as st
+
+if "user" not in st.session_state:
+    st.switch_page("login.py")
+
+
+import streamlit as st
 from agents import run_agents
 from github_utils import update_github_file
 from dotenv import load_dotenv
