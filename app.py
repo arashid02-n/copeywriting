@@ -1,8 +1,11 @@
 # app.py
 import streamlit as st
-
+# -------------------------------
+# Check if user is logged in
+# -------------------------------
 if "user" not in st.session_state:
-    st.switch_page("login.py")
+    st.warning("Please login first from the Login page.")
+    st.stop()
 
 
 import streamlit as st
