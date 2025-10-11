@@ -1,20 +1,13 @@
 # app.py
 import streamlit as st
-# -------------------------------
-# Check if user is logged in
-# -------------------------------
-if "user" not in st.session_state:
-    st.warning("Please login first from the Login page.")
-    st.stop()
-
-
-import streamlit as st
 from agents import run_agents
 from github_utils import update_github_file
 from dotenv import load_dotenv
 import os
 
+# -------------------------------
 # Load environment variables
+# -------------------------------
 load_dotenv()
 
 # -------------------------------
@@ -27,46 +20,26 @@ st.set_page_config(
 )
 
 # -------------------------------
+# Check if user is logged in
+# -------------------------------
+if "user" not in st.session_state:
+    st.warning("Please login first from the Login page.")
+    st.stop()
+
+# -------------------------------
 # Helper to read user fields safely
 # -------------------------------
 def _user_field(user, key):
-    """Return user field accommodating dict-like or object-like user."""
     if user is None:
         return None
     if isinstance(user, dict):
         return user.get(key)
     return getattr(user, key, None)
 
-# -------------------------------
-# Authentication / Login Screen
-# -------------------------------
-def show_login_screen():
-    """Render simple login screen that triggers Streamlit's OAuth."""
-    st.title("🔐 Please sign in")
-    st.write("You must sign in with Google to use this app.")
-    try:
-        st.button("Sign in with Google", on_click=lambda: st.login())
-    except Exception:
-        st.info("If the Sign in button does not work, ensure Streamlit OAuth is configured in secrets.toml.")
-
-# -------------------------------
-# Check login state and gate the app
-# -------------------------------
-user = getattr(st, "user", None)
-
-if not user:
-    show_login_screen()
-    st.stop()
-
-# If we reach here, the user is logged in
+user = st.session_state["user"]
 user_name = _user_field(user, "name") or _user_field(user, "email") or "User"
-user_email = _user_field(user, "email") or ""
 
 st.sidebar.markdown(f"**Signed in as:** {user_name}")
-try:
-    st.sidebar.button("Log out", on_click=lambda: st.logout())
-except Exception:
-    st.sidebar.info("Use app menu to log out if needed.")
 
 # -------------------------------
 # Chat app content
