@@ -33,7 +33,7 @@ if "code" in query_params:
     code = query_params["code"]
 
     try:
-        # Initialize Google OAuth flow
+        # --- Initialize Google OAuth flow ---
         flow = Flow.from_client_config(
             {
                 "web": {
@@ -54,7 +54,7 @@ if "code" in query_params:
         flow.fetch_token(code=code)
         credentials = flow.credentials
 
-        # Verify token and extract user info
+        # --- Verify token and extract user info ---
         idinfo = id_token.verify_oauth2_token(
             credentials._id_token,
             grequests.Request(),
@@ -78,7 +78,7 @@ if "code" in query_params:
 
         username_key = email.split("@")[0]
         if username_key not in config["credentials"]["usernames"]:
-            # Hash default password for Google user
+            # --- Hash default password for Google user ---
             hashed_password = stauth.Hasher().hash("google_oauth_user")
             config["credentials"]["usernames"][username_key] = {
                 "name": name or username_key,
@@ -94,20 +94,19 @@ if "code" in query_params:
         st.session_state["authenticated"] = True
         st.session_state["user"] = {"email": email, "name": name}
 
-        # Clear URL query parameters
+        # --- Clear URL query parameters ---
         st.query_params.clear()
 
-       # --- Show success message ---
-st.success(f"✅ Logged in successfully as {name}")
+        # --- Show success message ---
+        st.success(f"✅ Logged in successfully as {name}")
 
-# --- HTML redirect after 3 seconds ---
-st.markdown(f"""
-<meta http-equiv="refresh" content="3;url=/app">
-""", unsafe_allow_html=True)
+        # --- HTML redirect after 3 seconds to main app ---
+        st.markdown(f"""
+        <meta http-equiv="refresh" content="3;url=/app">
+        """, unsafe_allow_html=True)
 
-# Stop further execution
-st.stop()
-
+        # --- Stop further execution ---
+        st.stop()
 
     except Exception as e:
         st.error(f"⚠️ Google sign-in failed: {e}")
