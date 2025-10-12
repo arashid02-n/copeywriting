@@ -7,8 +7,6 @@ import yaml
 from yaml.loader import SafeLoader
 from pathlib import Path
 import streamlit_authenticator as stauth
-from streamlit.runtime.scriptrunner import RerunException
-from streamlit.runtime.scriptrunner.script_runner import ScriptRunner
 
 # --- Google OAuth dependencies ---
 from google_auth_oauthlib.flow import Flow
@@ -45,9 +43,11 @@ if "code" in query_params:
                     "token_uri": "https://oauth2.googleapis.com/token",
                 }
             },
-            scopes=["openid",
-        "https://www.googleapis.com/auth/userinfo.profile",
-        "https://www.googleapis.com/auth/userinfo.email"],
+            scopes=[
+                "openid",
+                "https://www.googleapis.com/auth/userinfo.profile",
+                "https://www.googleapis.com/auth/userinfo.email"
+            ],
         )
         flow.redirect_uri = GOOGLE_REDIRECT_URI
         flow.fetch_token(code=code)
@@ -77,6 +77,7 @@ if "code" in query_params:
 
         username_key = email.split("@")[0]
         if username_key not in config["credentials"]["usernames"]:
+            # Hash default password for Google user
             hashed_password = stauth.Hasher().hash("google_oauth_user")
             config["credentials"]["usernames"][username_key] = {
                 "name": name or username_key,
@@ -92,10 +93,12 @@ if "code" in query_params:
         st.session_state["authenticated"] = True
         st.session_state["user"] = {"email": email, "name": name}
 
-        # Clear URL query parameters and reload
+        # Clear URL query parameters
         st.query_params.clear()
+
+        # --- Stop execution so main app picks up updated session_state ---
         st.success(f"✅ Logged in successfully as {name}")
-        raise RerunException(st.script_runner)
+        st.stop()
 
     except Exception as e:
         st.error(f"⚠️ Google sign-in failed: {e}")
