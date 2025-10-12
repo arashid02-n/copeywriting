@@ -36,8 +36,8 @@ except Exception as e:
 
 # --- Create login form ---
 try:
-    # --- Create login form ---
-name, authentication_status, username = authenticator.login("Login", "main")
+    # Proper indentation for the try block
+    name, authentication_status, username = authenticator.login("Login", "main")
 except Exception as e:
     st.error(f"⚠️ Error loading login form: {e}")
     st.stop()
@@ -61,7 +61,7 @@ google_url = (
 st.markdown(f"[🔵 Log in with Google]({google_url})", unsafe_allow_html=True)
 
 # --- Handle login state ---
-if auth_status:
+if authentication_status:
     st.success(f"✅ Welcome, {name}!")
     authenticator.logout("Logout", "sidebar")
     # --- Set session_state flags so app.py can pick it up ---
@@ -71,7 +71,7 @@ if auth_status:
     st.session_state["google_login_done"] = False
     st.experimental_rerun()  # safe only after normal login
 
-elif auth_status is False:
+elif authentication_status is False:
     st.error("❌ Incorrect username or password.")
 
 else:
