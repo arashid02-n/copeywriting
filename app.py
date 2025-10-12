@@ -13,7 +13,6 @@ import time
 from google_auth_oauthlib.flow import Flow
 from google.oauth2 import id_token
 from google.auth.transport import requests as grequests
-from streamlit.runtime.scriptrunner import RerunException
 
 # ---------------------------------
 # Load environment variables
@@ -29,7 +28,7 @@ GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 # ---------------------------------
 query_params = st.query_params
 
-if "code" in query_params:
+if "code" in query_params and not st.session_state.get("google_login_done", False):
     st.write("⏳ Completing Google sign-in...")
     code = query_params["code"]
 
@@ -94,20 +93,21 @@ if "code" in query_params:
         st.session_state["authentication_status"] = True
         st.session_state["authenticated"] = True
         st.session_state["user"] = {"email": email, "name": name}
+        st.session_state["google_login_done"] = True
 
         # --- Clear URL query parameters ---
-        st.query_params.clear()
+        st.experimental_set_query_params()
 
         # --- Show success message ---
         st.success(f"✅ Logged in successfully as {name}")
 
-        # --- Wait 3 seconds and rerun app ---
+        # --- Wait 3 seconds and re-render the page ---
         time.sleep(3)
-        raise RerunException(st.script_runner)
+        st.experimental_rerun()
 
     except Exception as e:
         st.error(f"⚠️ Google sign-in failed: {e}")
-        st.query_params.clear()
+        st.experimental_set_query_params()
         st.stop()
 
 # ---------------------------------
@@ -137,8 +137,10 @@ st.sidebar.markdown(f"**Signed in as:** {user_name}")
 if st.sidebar.button("🚪 Logout"):
     st.session_state["authenticated"] = False
     st.session_state["user"] = {}
+    st.session_state["authentication_status"] = False
+    st.session_state["google_login_done"] = False
     st.success("You have been logged out successfully.")
-    st.switch_page("pages/login.py")
+    st.experimental_rerun()
 
 # ---------------------------------
 # Main app content
