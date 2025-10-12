@@ -32,11 +32,13 @@ except Exception as e:
     st.stop()
 
 # --- Create login form ---
-try:
-    name, authentication_status, username = authenticator.login(location="main")
-except TypeError:
-    st.error("⚠️ Could not load login form. Please refresh the page.")
+login_data = authenticator.login(location="main")
+
+if login_data is None:
+    st.warning("⚠️ Login form could not load. Please refresh the page.")
     st.stop()
+else:
+    name, authentication_status, username = login_data
 
 # --- Handle login result ---
 if authentication_status:
