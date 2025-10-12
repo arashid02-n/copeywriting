@@ -30,7 +30,7 @@ query_params = st.query_params
 
 if "code" in query_params and not st.session_state.get("google_login_done", False):
     st.write("⏳ Completing Google sign-in...")
-    code = query_params["code"]
+    code = query_params["code"][0] if isinstance(query_params["code"], list) else query_params["code"]
 
     try:
         # --- Initialize Google OAuth flow ---
@@ -95,19 +95,15 @@ if "code" in query_params and not st.session_state.get("google_login_done", Fals
         st.session_state["user"] = {"email": email, "name": name}
         st.session_state["google_login_done"] = True
 
-        # --- Clear URL query parameters ---
-        st.experimental_set_query_params()
-
         # --- Show success message ---
         st.success(f"✅ Logged in successfully as {name}")
 
-        # --- Wait 3 seconds and re-render the page ---
+        # --- Wait 3 seconds and rerun the app ---
         time.sleep(3)
         st.experimental_rerun()
 
     except Exception as e:
         st.error(f"⚠️ Google sign-in failed: {e}")
-        st.experimental_set_query_params()
         st.stop()
 
 # ---------------------------------
@@ -139,7 +135,6 @@ if st.sidebar.button("🚪 Logout"):
     st.session_state["user"] = {}
     st.session_state["authentication_status"] = False
     st.session_state["google_login_done"] = False
-    st.success("You have been logged out successfully.")
     st.experimental_rerun()
 
 # ---------------------------------
