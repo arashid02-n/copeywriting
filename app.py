@@ -77,7 +77,6 @@ if "code" in query_params and not st.session_state.get("google_login_done", Fals
 
         username_key = email.split("@")[0]
         if username_key not in config["credentials"]["usernames"]:
-            # --- Hash default password for Google user ---
             hashed_password = stauth.Hasher(["google_oauth_user"]).generate()[0]
             config["credentials"]["usernames"][username_key] = {
                 "name": name or username_key,
@@ -94,15 +93,10 @@ if "code" in query_params and not st.session_state.get("google_login_done", Fals
         st.session_state["user"] = {"email": email, "name": name}
         st.session_state["google_login_done"] = True
 
-        # --- Show success message ---
         st.success(f"✅ Logged in successfully as {name}")
-
-        # --- Rerun app safely to show chat bot ---
-        st.experimental_rerun()
 
     except Exception as e:
         st.error(f"⚠️ Google sign-in failed: {e}")
-        st.stop()
 
 # ---------------------------------
 # Streamlit Page Configuration
@@ -133,7 +127,7 @@ if st.sidebar.button("🚪 Logout"):
     st.session_state["user"] = {}
     st.session_state["authentication_status"] = False
     st.session_state["google_login_done"] = False
-    st.experimental_rerun()  # only safe for logout
+    st.experimental_rerun()  # safe only here
 
 # ---------------------------------
 # Main app content
@@ -174,7 +168,6 @@ if submitted:
         except Exception:
             page_content = uploaded_file.read().decode("latin-1")
 
-    # Run AI agent to generate suggestions
     suggestions = run_agents(
         content_target=content_target,
         page_link=page_link,
