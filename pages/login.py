@@ -35,8 +35,8 @@ except Exception as e:
 
 # --- Create login form ---
 try:
-    # Only positional arguments, no keywords!
-      name, authentication_status, username = authenticator.login("Login")
+    # Only positional argument "Login" is allowed
+    name, authentication_status, username = authenticator.login("Login")
 except Exception as e:
     st.error(f"⚠️ Error loading login form: {e}")
     st.stop()
