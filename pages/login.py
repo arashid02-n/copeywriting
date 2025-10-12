@@ -31,21 +31,17 @@ except Exception as e:
     st.error(f"⚠️ Error initializing authenticator: {e}")
     st.stop()
 
-# --- Create login form ---
-try:
-    name, authentication_status, username = authenticator.login(location="main")
-except Exception as e:
-    st.error(f"⚠️ Error loading login form: {e}")
-    st.stop()
+# --- Render login form ---
+authenticator.login(fields={'Form name': 'Login to your account'}, location="main")
 
-# --- Handle login result ---
-if authentication_status:
-    st.success(f"✅ Welcome, {name}!")
+# --- Handle authentication result ---
+if st.session_state.get("authentication_status"):
+    st.success(f"✅ Welcome, {st.session_state.get('name')}!")
     authenticator.logout("Logout", "sidebar")
     st.switch_page("app.py")
 
-elif authentication_status is False:
+elif st.session_state.get("authentication_status") is False:
     st.error("❌ Incorrect username or password.")
 
-elif authentication_status is None:
-    st.info("Please enter your username and password.")
+elif st.session_state.get("authentication_status") is None:
+    st.info("Please enter your username and password to continue.")
