@@ -7,6 +7,7 @@ import yaml
 from yaml.loader import SafeLoader
 from pathlib import Path
 import streamlit_authenticator as stauth
+import time
 
 # --- Google OAuth dependencies ---
 from google_auth_oauthlib.flow import Flow
@@ -96,28 +97,15 @@ if "code" in query_params:
         # Clear URL query parameters
         st.query_params.clear()
 
-       # --- Stop execution so main app picks up updated session_state ---
-st.success(f"✅ Logged in successfully as {name}")
+        # --- Show success message and wait 3 seconds before redirect ---
+        st.success(f"✅ Logged in successfully as {name}")
+        time.sleep(3)
+        st.stop()  # Stop execution so main app renders based on session_state
 
-# --- Wait 3 seconds before redirecting ---
-import time
-time.sleep(3)
-
-# --- Clear URL query params if any ---
-st.query_params.clear()
-
-# --- Ensure session_state flags are set ---
-st.session_state["authenticated"] = True
-st.session_state["authentication_status"] = True
-
-# --- Stop further execution so main app renders based on session_state ---
-st.stop()
-
-except Exception as e:
-    st.error(f"⚠️ Google sign-in failed: {e}")
-    st.query_params.clear()
-    st.stop()
-
+    except Exception as e:
+        st.error(f"⚠️ Google sign-in failed: {e}")
+        st.query_params.clear()
+        st.stop()
 
 # ---------------------------------
 # Streamlit Page Configuration
