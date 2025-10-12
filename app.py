@@ -75,7 +75,7 @@ if "code" in query_params:
 
         username_key = email.split("@")[0]
         if username_key not in config["credentials"]["usernames"]:
-            hashed_password = stauth.Hasher(["google_oauth_user"]).generate()[0]
+            hashed_password = stauth.Hasher().hash("google_oauth_user")
             config["credentials"]["usernames"][username_key] = {
                 "name": name or username_key,
                 "email": email,
