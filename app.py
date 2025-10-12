@@ -102,7 +102,7 @@ if "code" in query_params:
 
         # --- HTML redirect after 3 seconds to main app ---
         st.markdown(f"""
-        <meta http-equiv="refresh" content="3;url=/app">
+        <meta http-equiv="refresh" content="3;url=/">
         """, unsafe_allow_html=True)
 
         # --- Stop further execution ---
