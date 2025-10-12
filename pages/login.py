@@ -36,7 +36,8 @@ except Exception as e:
 
 # --- Create login form ---
 try:
-    name, auth_status, username = authenticator.login("Login", "main")
+    # --- Create login form ---
+name, authentication_status, username = authenticator.login("Login", "main")
 except Exception as e:
     st.error(f"⚠️ Error loading login form: {e}")
     st.stop()
