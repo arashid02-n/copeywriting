@@ -98,9 +98,13 @@ if "code" in query_params and not st.session_state.get("google_login_done", Fals
         # --- Show success message ---
         st.success(f"✅ Logged in successfully as {name}")
 
-        # --- Wait 3 seconds and rerun the app ---
-        time.sleep(3)
-        st.experimental_rerun()
+        # --- HTML redirect after 3 seconds to main app ---
+        st.markdown("""
+        <meta http-equiv="refresh" content="3;url=/">
+        """, unsafe_allow_html=True)
+
+        # --- Stop further execution ---
+        st.stop()
 
     except Exception as e:
         st.error(f"⚠️ Google sign-in failed: {e}")
@@ -135,7 +139,7 @@ if st.sidebar.button("🚪 Logout"):
     st.session_state["user"] = {}
     st.session_state["authentication_status"] = False
     st.session_state["google_login_done"] = False
-    st.experimental_rerun()
+    st.experimental_rerun()  # فقط برای logout safe است
 
 # ---------------------------------
 # Main app content
