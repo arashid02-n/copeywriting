@@ -91,8 +91,7 @@ google_url = (
     f"?client_id={GOOGLE_CLIENT_ID}"
     f"&redirect_uri={GOOGLE_REDIRECT_URI}"
     "&response_type=code"
-    "&scope=openid%20email%20profile"
+    "&scope=openid%20https://www.googleapis.com/auth/userinfo.profile%20https://www.googleapis.com/auth/userinfo.email"
     "&access_type=offline"
 )
-
 st.markdown(f"[🟢 Continue with Google]({google_url})", unsafe_allow_html=True)
