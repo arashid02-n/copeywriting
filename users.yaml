@@ -1,0 +1,13 @@
+credentials:
+  usernames:
+    rashid:
+      email: rashid@example.com
+      name: Rashid
+      password: "pbkdf2:sha256:260000$Z...YOUR_HASH..."  # این با هش جایگزین میشه
+cookie:
+  expiry_days: 30
+  key: some_signature_key
+  name: copey_cookie
+preauthorized:
+  emails:
+    - rashid@example.com
