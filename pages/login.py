@@ -1,58 +1,67 @@
 # pages/login.py
 import os
 import streamlit as st
-from dotenv import load_dotenv
 import yaml
 from yaml.loader import SafeLoader
-import streamlit_authenticator as stauth
+from passlib.hash import bcrypt
+from dotenv import load_dotenv
+from urllib.parse import urlencode
 
-# -------------------------------
-# Load environment variables
-# -------------------------------
 load_dotenv()
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 
-# -------------------------------
-# Load credentials
-# -------------------------------
-with open("users.yaml") as file:
-    config = yaml.load(file, Loader=SafeLoader)
-
-# -------------------------------
-# Streamlit Config
-# -------------------------------
 st.set_page_config(page_title="Login", page_icon="🔐", layout="centered")
 st.title("🔐 Login to Copey AI")
 
-# -------------------------------
-# Authenticator setup
-# -------------------------------
-authenticator = stauth.Authenticate(
-    config["credentials"],
-    config["cookie"]["name"],
-    config["cookie"]["key"],
-    config["cookie"]["expiry_days"]
-)
+# Load users
+CREDENTIALS_PATH = "users.yaml"
+with open(CREDENTIALS_PATH, "r") as f:
+    config = yaml.safe_load(f)
 
-# -------------------------------
-# Login Form
-# -------------------------------
-try:
-    name, authentication_status, username = authenticator.login("Login", location="main")
-except TypeError:
-    result = authenticator.login(location="main")
-    if result:
-        name, authentication_status, username = result
-    else:
-        name = authentication_status = username = None
+users = config.get("credentials", {}).get("usernames", {})
 
-if authentication_status:
-    st.session_state["user"] = {"name": name, "username": username}
-    st.success(f"Welcome {name} 👋")
-    st.switch_page("app.py")
-elif authentication_status is False:
-    st.error("❌ Username or password incorrect")
-elif authentication_status is None:
-    st.info("Please enter your credentials")
+# --- Manual login form ---
+with st.form("login_form"):
+    username_input = st.text_input("Username")
+    password_input = st.text_input("Password", type="password")
+    submitted = st.form_submit_button("Login")
+
+    if submitted:
+        if username_input not in users:
+            st.error("Username not found.")
+        else:
+            stored = users[username_input]
+            stored_hash = stored.get("password", "")
+            # Verify bcrypt password
+            try:
+                ok = bcrypt.verify(password_input, stored_hash)
+            except Exception as e:
+                ok = False
+            if ok:
+                # login success
+                st.session_state["user"] = {"name": stored.get("name", username_input),
+                                            "username": username_input,
+                                            "email": stored.get("email", "")}
+                st.success(f"Welcome {st.session_state['user']['name']} 👋")
+                st.experimental_rerun()
+            else:
+                st.error("Incorrect password.")
 
 st.markdown("---")
 st.markdown("Don't have an account? [👉 Sign Up here](signup)")
+
+# Google OAuth (optional link)
+st.markdown("---")
+st.subheader("Or sign in with Google")
+if GOOGLE_CLIENT_ID and GOOGLE_REDIRECT_URI:
+    auth_url = "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode({
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "response_type": "token",
+        "scope": "openid email profile",
+        "prompt": "select_account"
+    })
+    st.markdown(f"[👉 Click here to authorize with Google]({auth_url})")
+else:
+    st.info("Google OAuth not configured. Add GOOGLE_CLIENT_ID and GOOGLE_REDIRECT_URI in .env")
