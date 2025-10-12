@@ -40,6 +40,7 @@ try:
 except Exception as e:
     st.error(f"⚠️ Error loading login form: {e}")
     st.stop()
+
 # --- Google Login ---
 load_dotenv()
 
@@ -58,14 +59,14 @@ google_url = (
     "&access_type=offline"
 )
 st.markdown(f"[🔵 Log in with Google]({google_url})", unsafe_allow_html=True)
+
 # --- Handle login state ---
 auth_status = st.session_state.get("authentication_status")
-name = st.session_state.get("name")
+name = st.session_state.get("user", {}).get("name")
 
 if auth_status:
     st.success(f"✅ Welcome, {name}!")
     authenticator.logout("Logout", "sidebar")
-    st.switch_page("app.py")
 
 elif auth_status is False:
     st.error("❌ Incorrect username or password.")
