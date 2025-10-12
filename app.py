@@ -97,10 +97,17 @@ if "code" in query_params:
         # Clear URL query parameters
         st.query_params.clear()
 
-        # --- Show success message and wait 3 seconds before redirect ---
-        st.success(f"✅ Logged in successfully as {name}")
-        time.sleep(3)
-        st.stop()  # Stop execution so main app renders based on session_state
+       # --- Show success message ---
+st.success(f"✅ Logged in successfully as {name}")
+
+# --- HTML redirect after 3 seconds ---
+st.markdown(f"""
+<meta http-equiv="refresh" content="3;url=/app">
+""", unsafe_allow_html=True)
+
+# Stop further execution
+st.stop()
+
 
     except Exception as e:
         st.error(f"⚠️ Google sign-in failed: {e}")
