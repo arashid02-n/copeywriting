@@ -35,7 +35,7 @@ except Exception as e:
 
 # --- Create login form ---
 try:
-    # New syntax for latest versions: only positional args, location must be 'main' or 'sidebar'
+    # Only positional arguments, no keywords!
     name, authentication_status, username = authenticator.login("Login", "main")
 except Exception as e:
     st.error(f"⚠️ Error loading login form: {e}")
@@ -63,7 +63,6 @@ st.markdown(f"[🔵 Log in with Google]({google_url})", unsafe_allow_html=True)
 if authentication_status:
     st.success(f"✅ Welcome, {name}!")
     authenticator.logout("Logout", "sidebar")
-    # --- Set session_state flags so app.py can pick it up ---
     st.session_state["authentication_status"] = True
     st.session_state["authenticated"] = True
     st.session_state["user"] = {"name": name, "email": username}
