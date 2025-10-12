@@ -40,7 +40,7 @@ authenticator = stauth.Authenticate(
 # -------------------------------
 # Normal login form
 # ----------------------------
-name, authentication_status, username = authenticator.login("Login", location="main")
+name, authentication_status, username = authenticator.login(location="main")
 
 if authentication_status:
     st.session_state["user"] = {"name": name, "username": username}
