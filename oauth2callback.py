@@ -1,22 +1,24 @@
-# oauth2callback.py  
+# oauth2callback.py
 import streamlit as st
 from google_auth_oauthlib.flow import Flow
 from google.oauth2 import id_token
 from google.auth.transport import requests
 import os
 from dotenv import load_dotenv
+import yaml
+from yaml.loader import SafeLoader
+from pathlib import Path
+import streamlit_authenticator as stauth
 
-# --- Load environment variables ---
+# --- Load env ---
 load_dotenv()
 
 st.set_page_config(page_title="Google Auth", page_icon="🔑")
+st.write("⏳ Authenticating with Google...")
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
-
-# --- Page UI ---
-st.write("⏳ Authenticating with Google...")
 
 query_params = st.query_params
 if "code" not in query_params:
@@ -24,7 +26,7 @@ if "code" not in query_params:
     st.stop()
 
 try:
-    # --- Create OAuth Flow ---
+    # --- OAuth Flow ---
     flow = Flow.from_client_config(
         {
             "web": {
@@ -38,12 +40,9 @@ try:
         scopes=["openid", "email", "profile"]
     )
     flow.redirect_uri = GOOGLE_REDIRECT_URI
-
-    # --- Exchange code for tokens ---
     flow.fetch_token(code=query_params["code"][0])
-    credentials = flow.credentials
 
-    # --- Verify ID token ---
+    credentials = flow.credentials
     idinfo = id_token.verify_oauth2_token(
         credentials._id_token,
         requests.Request(),
@@ -53,12 +52,38 @@ try:
     email = idinfo.get("email")
     name = idinfo.get("name")
 
+    # --- Load YAML users file ---
+    config_path = Path(__file__).parent / "users.yaml"
+
+    if not config_path.exists():
+        st.error("❌ users.yaml file not found on server.")
+        st.stop()
+
+    with open(config_path, "r") as f:
+        config = yaml.load(f, Loader=SafeLoader)
+
+    # --- If user not exists, add it ---
+    usernames = config["credentials"]["usernames"]
+    username_key = email.split("@")[0]  # create username base on email
+
+    if username_key not in usernames:
+        hashed_password = stauth.Hasher().hash("google_oauth_user")  # dummy pass
+        usernames[username_key] = {
+            "name": name,
+            "email": email,
+            "password": hashed_password
+        }
+
+        with open(config_path, "w") as f:
+            yaml.dump(config, f, default_flow_style=False)
+
+        st.info(f"👤 New Google user added: {email}")
+
+    # --- Set session ---
     st.session_state["authenticated"] = True
     st.session_state["user"] = {"email": email, "name": name}
 
     st.success(f"✅ Logged in as {name} ({email})")
-
-    # --- Redirect to main app ---
     st.switch_page("app.py")
 
 except Exception as e:
