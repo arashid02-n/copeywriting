@@ -6,8 +6,7 @@ import streamlit_authenticator as stauth
 
 # --- Page config ---
 st.set_page_config(page_title="Login", page_icon="🔐")
-
-st.title("🔐 Login")
+st.title("🔐 Login to Copey AI")
 
 # --- Load config file ---
 config_path = Path(__file__).parent.parent / "users.yaml"
@@ -22,32 +21,31 @@ except FileNotFoundError:
 # --- Initialize authenticator ---
 try:
     authenticator = stauth.Authenticate(
-        config["credentials"],
-        config.get("cookie", {}).get("name", "streamlit_auth_cookie"),
-        config.get("cookie", {}).get("key", "some_random_key"),
-        config.get("cookie", {}).get("expiry_days", 30),
+        config['credentials'],
+        config['cookie']['name'],
+        config['cookie']['key'],
+        config['cookie']['expiry_days'],
+        config.get('preauthorized', {}).get('emails', [])
     )
 except Exception as e:
     st.error(f"⚠️ Error initializing authenticator: {e}")
     st.stop()
 
 # --- Create login form ---
-login_data = authenticator.login(location="main")
-
-if login_data is None:
-    st.warning("⚠️ Login form could not load. Please refresh the page.")
+try:
+    name, authentication_status, username = authenticator.login(location="main")
+except Exception as e:
+    st.error(f"⚠️ Error loading login form: {e}")
     st.stop()
-else:
-    name, authentication_status, username = login_data
 
 # --- Handle login result ---
 if authentication_status:
     st.success(f"✅ Welcome, {name}!")
     authenticator.logout("Logout", "sidebar")
-    st.switch_page("app.py")  # Redirect to main app page after login
+    st.switch_page("app.py")
 
 elif authentication_status is False:
     st.error("❌ Incorrect username or password.")
 
 elif authentication_status is None:
-    st.info("Please enter your username and password to log in.")
+    st.info("Please enter your username and password.")
