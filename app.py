@@ -96,14 +96,28 @@ if "code" in query_params:
         # Clear URL query parameters
         st.query_params.clear()
 
-        # --- Stop execution so main app picks up updated session_state ---
-        st.success(f"✅ Logged in successfully as {name}")
-        st.stop()
+       # --- Stop execution so main app picks up updated session_state ---
+st.success(f"✅ Logged in successfully as {name}")
 
-    except Exception as e:
-        st.error(f"⚠️ Google sign-in failed: {e}")
-        st.query_params.clear()
-        st.stop()
+# --- Wait 3 seconds before redirecting ---
+import time
+time.sleep(3)
+
+# --- Clear URL query params if any ---
+st.query_params.clear()
+
+# --- Ensure session_state flags are set ---
+st.session_state["authenticated"] = True
+st.session_state["authentication_status"] = True
+
+# --- Stop further execution so main app renders based on session_state ---
+st.stop()
+
+except Exception as e:
+    st.error(f"⚠️ Google sign-in failed: {e}")
+    st.query_params.clear()
+    st.stop()
+
 
 # ---------------------------------
 # Streamlit Page Configuration
