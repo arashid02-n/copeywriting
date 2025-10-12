@@ -37,7 +37,8 @@ except Exception as e:
 # --- Create login form ---
 try:
     # Proper indentation for the try block
-     name, authentication_status, username = authenticator.login(name="Login", location="main")
+      # برای نسخه‌ی جدید streamlit-authenticator
+   name, authentication_status, username = authenticator.login("Login", "main")
 except Exception as e:
     st.error(f"⚠️ Error loading login form: {e}")
     st.stop()
