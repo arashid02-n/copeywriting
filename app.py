@@ -43,7 +43,9 @@ if "code" in query_params:
                     "token_uri": "https://oauth2.googleapis.com/token",
                 }
             },
-            scopes=["openid", "email", "profile"],
+            scopes=["openid",
+        "https://www.googleapis.com/auth/userinfo.profile",
+        "https://www.googleapis.com/auth/userinfo.email"],
         )
         flow.redirect_uri = GOOGLE_REDIRECT_URI
         flow.fetch_token(code=code)
