@@ -1,4 +1,4 @@
-# pages/oauth2callback.py
+# oauth2callback.py  
 import streamlit as st
 from google_auth_oauthlib.flow import Flow
 from google.oauth2 import id_token
@@ -6,23 +6,25 @@ from google.auth.transport import requests
 import os
 from dotenv import load_dotenv
 
+# --- Load environment variables ---
 load_dotenv()
 
-st.set_page_config(page_title="Google Auth Callback", page_icon="🔑")
+st.set_page_config(page_title="Google Auth", page_icon="🔑")
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 
+# --- Page UI ---
 st.write("⏳ Authenticating with Google...")
 
-# Parse query params
 query_params = st.query_params
-if "state" not in query_params or "code" not in query_params:
-    st.error("❌ Missing OAuth parameters. Try again.")
+if "code" not in query_params:
+    st.error("❌ Invalid OAuth request — no code parameter found.")
     st.stop()
 
 try:
+    # --- Create OAuth Flow ---
     flow = Flow.from_client_config(
         {
             "web": {
@@ -36,22 +38,28 @@ try:
         scopes=["openid", "email", "profile"]
     )
     flow.redirect_uri = GOOGLE_REDIRECT_URI
-    flow.fetch_token(code=query_params["code"][0])
 
+    # --- Exchange code for tokens ---
+    flow.fetch_token(code=query_params["code"][0])
     credentials = flow.credentials
-    id_info = id_token.verify_oauth2_token(
+
+    # --- Verify ID token ---
+    idinfo = id_token.verify_oauth2_token(
         credentials._id_token,
         requests.Request(),
         GOOGLE_CLIENT_ID
     )
 
-    email = id_info.get("email")
-    name = id_info.get("name")
+    email = idinfo.get("email")
+    name = idinfo.get("name")
 
     st.session_state["authenticated"] = True
     st.session_state["user"] = {"email": email, "name": name}
-    st.success(f"✅ Welcome {name} ({email})!")
+
+    st.success(f"✅ Logged in as {name} ({email})")
+
+    # --- Redirect to main app ---
     st.switch_page("app.py")
 
 except Exception as e:
-    st.error(f"⚠️ Google Authentication failed: {e}")
+    st.error(f"⚠️ Authentication failed: {e}")
