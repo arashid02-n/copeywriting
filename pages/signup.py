@@ -4,6 +4,10 @@ from yaml.loader import SafeLoader
 from pathlib import Path
 import re
 import streamlit_authenticator as stauth
+import os
+from google_auth_oauthlib.flow import Flow
+from dotenv import load_dotenv
+
 
 # --- Page setup ---
 st.set_page_config(page_title="Sign Up", page_icon="📝")
@@ -71,3 +75,24 @@ if submitted:
 
     st.success("✅ Account created successfully! You can now log in.")
     st.switch_page("pages/login.py")
+    # --- Google Sign Up button ---
+load_dotenv()
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
+
+st.markdown("----")
+st.markdown("### Or Sign Up with Google")
+
+# Build Google OAuth URL manually
+google_url = (
+    "https://accounts.google.com/o/oauth2/auth"
+    f"?client_id={GOOGLE_CLIENT_ID}"
+    f"&redirect_uri={GOOGLE_REDIRECT_URI}"
+    "&response_type=code"
+    "&scope=openid%20email%20profile"
+    "&access_type=offline"
+)
+
+st.markdown(f"[🟢 Continue with Google]({google_url})", unsafe_allow_html=True)
