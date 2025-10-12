@@ -7,6 +7,8 @@ import yaml
 from yaml.loader import SafeLoader
 from pathlib import Path
 import streamlit_authenticator as stauth
+from streamlit.runtime.scriptrunner import RerunException
+from streamlit.runtime.scriptrunner.script_runner import ScriptRunner
 
 # --- Google OAuth dependencies ---
 from google_auth_oauthlib.flow import Flow
@@ -93,7 +95,7 @@ if "code" in query_params:
         # Clear URL query parameters and reload
         st.query_params.clear()
         st.success(f"✅ Logged in successfully as {name}")
-        st.experimental_rerun()
+        raise RerunException(st.script_runner)
 
     except Exception as e:
         st.error(f"⚠️ Google sign-in failed: {e}")
