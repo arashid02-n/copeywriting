@@ -29,7 +29,7 @@ with st.form("signup_form", clear_on_submit=True):
             st.warning("⚠️ Username already exists.")
         else:
             # --- Hash password safely ---
-            hashed_password = stauth.Hasher([password]).generate()[0]
+            hashed_password = stauth.Hasher().hash(password)
 
             # --- Add new user ---
             config["credentials"]["usernames"][username] = {
