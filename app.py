@@ -1,4 +1,3 @@
-# app.py
 import streamlit as st
 from agents import run_agents
 from github_utils import update_github_file
@@ -20,26 +19,23 @@ st.set_page_config(
 )
 
 # -------------------------------
-# Check if user is logged in
+# Authentication check
 # -------------------------------
-if "user" not in st.session_state:
-    st.warning("Please login first from the Login page.")
+if not st.session_state.get("authenticated", False):
+    st.warning("⚠️ Please login first from the Login page.")
     st.stop()
 
-# -------------------------------
-# Helper to read user fields safely
-# -------------------------------
-def _user_field(user, key):
-    if user is None:
-        return None
-    if isinstance(user, dict):
-        return user.get(key)
-    return getattr(user, key, None)
+# Retrieve user info from session_state
+user = st.session_state.get("user", {})
+user_name = user.get("name") or user.get("email") or "User"
 
-user = st.session_state["user"]
-user_name = _user_field(user, "name") or _user_field(user, "email") or "User"
-
+# Sidebar user info + logout
 st.sidebar.markdown(f"**Signed in as:** {user_name}")
+if st.sidebar.button("🚪 Logout"):
+    st.session_state["authenticated"] = False
+    st.session_state["user"] = {}
+    st.success("You have been logged out successfully.")
+    st.switch_page("pages/login.py")
 
 # -------------------------------
 # Chat app content
@@ -58,7 +54,10 @@ with st.form("input_form"):
 
     st.markdown("Provide your website link **or** upload your page files (HTML, etc.)")
     page_link = st.text_input("Website Link (optional)")
-    uploaded_file = st.file_uploader("Upload your HTML or content file (optional)", type=["html", "htm", "txt"])
+    uploaded_file = st.file_uploader(
+        "Upload your HTML or content file (optional)", 
+        type=["html", "htm", "txt"]
+    )
 
     desired_outcome = st.text_area(
         "Describe how you want the improved content to be:",
@@ -101,6 +100,9 @@ if submitted:
             "chosen": choice
         })
 
+# -------------------------------
+# Chat history
+# -------------------------------
 if st.session_state.chat_history:
     st.subheader("💬 Chat History")
     for i, chat in enumerate(st.session_state.chat_history[::-1], 1):
