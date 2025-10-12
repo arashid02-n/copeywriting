@@ -17,14 +17,11 @@ st.set_page_config(
     page_icon="✍️",
     layout="centered"
 )
-# Debug: show session state keys & content (REMOVE in production)
-st.write("DEBUG session_state keys:", list(st.session_state.keys()))
-st.write("DEBUG session_state:", dict(st.session_state))
 
 # -------------------------------
 # Authentication check
 # -------------------------------
-if not st.session_state.get("authenticated", False):
+if not st.session_state.get("authentication_status", False):
     st.warning("⚠️ Please login first from the Login page.")
     st.stop()
 
