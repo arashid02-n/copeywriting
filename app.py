@@ -13,6 +13,7 @@ import time
 from google_auth_oauthlib.flow import Flow
 from google.oauth2 import id_token
 from google.auth.transport import requests as grequests
+from streamlit.runtime.scriptrunner import RerunException
 
 # ---------------------------------
 # Load environment variables
@@ -79,7 +80,7 @@ if "code" in query_params:
         username_key = email.split("@")[0]
         if username_key not in config["credentials"]["usernames"]:
             # --- Hash default password for Google user ---
-            hashed_password = stauth.Hasher().hash("google_oauth_user")
+            hashed_password = stauth.Hasher(["google_oauth_user"]).generate()[0]
             config["credentials"]["usernames"][username_key] = {
                 "name": name or username_key,
                 "email": email,
@@ -100,13 +101,9 @@ if "code" in query_params:
         # --- Show success message ---
         st.success(f"✅ Logged in successfully as {name}")
 
-        # --- HTML redirect after 3 seconds to main app ---
-        st.markdown(f"""
-        <meta http-equiv="refresh" content="3;url=/">
-        """, unsafe_allow_html=True)
-
-        # --- Stop further execution ---
-        st.stop()
+        # --- Wait 3 seconds and rerun app ---
+        time.sleep(3)
+        raise RerunException(st.script_runner)
 
     except Exception as e:
         st.error(f"⚠️ Google sign-in failed: {e}")
