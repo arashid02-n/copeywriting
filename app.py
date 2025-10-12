@@ -7,7 +7,6 @@ import yaml
 from yaml.loader import SafeLoader
 from pathlib import Path
 import streamlit_authenticator as stauth
-import time
 
 # --- Google OAuth dependencies ---
 from google_auth_oauthlib.flow import Flow
@@ -98,13 +97,8 @@ if "code" in query_params and not st.session_state.get("google_login_done", Fals
         # --- Show success message ---
         st.success(f"✅ Logged in successfully as {name}")
 
-        # --- HTML redirect after 3 seconds to main app ---
-        st.markdown("""
-        <meta http-equiv="refresh" content="3;url=/">
-        """, unsafe_allow_html=True)
-
-        # --- Stop further execution ---
-        st.stop()
+        # --- Rerun app safely to show chat bot ---
+        st.experimental_rerun()
 
     except Exception as e:
         st.error(f"⚠️ Google sign-in failed: {e}")
@@ -139,7 +133,7 @@ if st.sidebar.button("🚪 Logout"):
     st.session_state["user"] = {}
     st.session_state["authentication_status"] = False
     st.session_state["google_login_done"] = False
-    st.experimental_rerun()  # فقط برای logout safe است
+    st.experimental_rerun()  # only safe for logout
 
 # ---------------------------------
 # Main app content
