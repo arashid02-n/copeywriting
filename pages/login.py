@@ -112,7 +112,7 @@ google_url = (
      "&scope=openid%20https://www.googleapis.com/auth/userinfo.profile%20https://www.googleapis.com/auth/userinfo.email"
 
 
-    "&access_type=offline"
+    "&access_type=offline")
      st.markdown(f"[🔵 Log in with Google]({google_url})", unsafe_allow_html=True)
 
 
