@@ -1,11 +1,11 @@
+# pages/signup.py
 import streamlit as st
 import yaml
 from yaml.loader import SafeLoader
 import streamlit_authenticator as stauth
 from pathlib import Path
 
-st.set_page_config(page_title="Sign Up", page_icon="📝")
-
+st.set_page_config(page_title="Sign Up", page_icon="📝", layout="centered")
 st.title("📝 Create a New Account")
 
 # --- Load users config ---
@@ -28,19 +28,13 @@ with st.form("signup_form", clear_on_submit=True):
         elif username in config["credentials"]["usernames"]:
             st.warning("Username already exists.")
         else:
-            # --- Hash password ---
             hashed_password = stauth.Hasher([password]).generate()[0]
-
-            # --- Add new user ---
             config["credentials"]["usernames"][username] = {
                 "email": email,
                 "name": name,
                 "password": hashed_password
             }
-
-            # --- Save updated users to YAML ---
             with open(config_path, "w") as file:
                 yaml.dump(config, file, default_flow_style=False)
-
             st.success("✅ Account created successfully! You can now log in.")
             st.switch_page("pages/login.py")
