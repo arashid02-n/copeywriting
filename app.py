@@ -94,8 +94,7 @@ if "code" in query_params and not st.session_state.get("google_login_done", Fals
 
         # ✅ Fixed indentation and hashing for Google users
         if username_key not in config["credentials"]["usernames"]:
-            dummy_password = "google_oauth_user"[:72]  # ensure <72 bytes
-            hashed_password = bcrypt.hash(dummy_password)
+            hashed_password = safe_bcrypt_hash("google_oauth_user")
 
             config["credentials"]["usernames"][username_key] = {
                 "name": name or username_key,
