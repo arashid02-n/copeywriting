@@ -31,6 +31,12 @@ if "code" not in query_params:
     st.error("❌ Invalid OAuth request — no code parameter found.")
     st.stop()
 
+# ✅ اگر قبلاً لاگین شده، دوباره اجرا نکن
+if st.session_state.get("authenticated"):
+    st.success(f"✅ Already logged in as {st.session_state['user']['name']}")
+    st.switch_page("app.py")
+    st.stop()
+
 try:
     flow = Flow.from_client_config(
         {
@@ -47,11 +53,7 @@ try:
     flow.redirect_uri = GOOGLE_REDIRECT_URI
     flow.fetch_token(code=query_params["code"][0])
     credentials = flow.credentials
-    idinfo = id_token.verify_oauth2_token(
-        credentials._id_token,
-        requests.Request(),
-        GOOGLE_CLIENT_ID
-    )
+    idinfo = id_token.verify_oauth2_token(credentials._id_token, requests.Request(), GOOGLE_CLIENT_ID)
 
     email = idinfo.get("email")
     name = idinfo.get("name")
@@ -75,6 +77,7 @@ try:
 
     st.session_state["authenticated"] = True
     st.session_state["user"] = {"email": email, "name": name}
+    st.session_state["google_login_done"] = True
     st.success(f"✅ Logged in as {name} ({email})")
     st.switch_page("app.py")
 
