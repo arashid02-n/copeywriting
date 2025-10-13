@@ -7,6 +7,7 @@ import yaml
 from yaml.loader import SafeLoader
 from pathlib import Path
 import streamlit_authenticator as stauth
+from passlib.hash import bcrypt
 
 # --- Google OAuth dependencies ---
 from google_auth_oauthlib.flow import Flow
@@ -76,8 +77,9 @@ if "code" in query_params and not st.session_state.get("google_login_done", Fals
             }
 
         username_key = email.split("@")[0]
-        if username_key not in config["credentials"]["usernames"]:
-            hashed_password = stauth.Hasher(["google_oauth_user"]).generate()[0]
+         if username_key not in config["credentials"]["usernames"]:
+            hashed_password = bcrypt.hash("google_oauth_user")
+
             config["credentials"]["usernames"][username_key] = {
                 "name": name or username_key,
                 "email": email,
