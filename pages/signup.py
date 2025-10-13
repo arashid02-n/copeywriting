@@ -7,6 +7,7 @@ import streamlit_authenticator as stauth
 import os
 from google_auth_oauthlib.flow import Flow
 from dotenv import load_dotenv
+from passlib.hash import bcrypt
 
 
 # --- Page setup ---
@@ -60,8 +61,7 @@ if submitted:
         st.stop()
 
     # --- Hash password securely ---
-    hashed_password = stauth.Hasher().hash(password)
-
+     hashed_password = bcrypt.hash(password)
     # --- Add new user ---
     config["credentials"]["usernames"][username] = {
         "name": name,
