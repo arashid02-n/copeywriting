@@ -44,7 +44,8 @@ if submitted:
             st.session_state["authenticated"] = True
             st.session_state["user"] = {"name": usernames[username]["name"], "email": usernames[username]["email"]}
             st.success(f"✅ Welcome, {usernames[username]['name']}!")
-            st.experimental_rerun()
+            st.session_state["rerun"] = True
+            st.experimental_set_query_params()  # triggers rerun
         else:
             st.error("❌ Incorrect password.")
 
