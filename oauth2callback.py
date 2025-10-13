@@ -9,11 +9,11 @@ from yaml.loader import SafeLoader
 from pathlib import Path
 from passlib.hash import bcrypt
 
-# --- Safe bcrypt hash ---
+# --- Safe bcrypt hash (truncate 72 bytes) ---
 def safe_bcrypt_hash(password: str) -> str:
     if password is None:
         password = ""
-    pw_bytes = password.encode("utf-8", errors="ignore")[:72]
+    pw_bytes = password.encode("utf-8")[:72]
     pw_truncated = pw_bytes.decode("utf-8", errors="ignore")
     return bcrypt.hash(pw_truncated)
 
@@ -22,7 +22,6 @@ st.set_page_config(page_title="Google Auth", page_icon="🔑")
 st.write("⏳ Authenticating with Google...")
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 
 query_params = st.query_params
@@ -35,7 +34,7 @@ try:
         {
             "web": {
                 "client_id": GOOGLE_CLIENT_ID,
-                "client_secret": GOOGLE_CLIENT_SECRET,
+                "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
                 "redirect_uris": [GOOGLE_REDIRECT_URI],
                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                 "token_uri": "https://oauth2.googleapis.com/token",
@@ -51,11 +50,11 @@ try:
     email = idinfo.get("email")
     name = idinfo.get("name")
 
+    # --- Load YAML ---
     config_path = Path(__file__).parent / "users.yaml"
     if not config_path.exists():
         st.error("❌ users.yaml file not found on server.")
         st.stop()
-
     with open(config_path, "r") as f:
         config = yaml.load(f, Loader=SafeLoader)
 
@@ -65,15 +64,14 @@ try:
     if username_key not in usernames:
         hashed_password = safe_bcrypt_hash("google_oauth_user")
         usernames[username_key] = {"name": name, "email": email, "password": hashed_password}
-
         with open(config_path, "w") as f:
             yaml.dump(config, f, default_flow_style=False)
-
         st.info(f"👤 New Google user added: {email}")
 
     st.session_state["authenticated"] = True
     st.session_state["user"] = {"email": email, "name": name}
-
+    st.session_state["authentication_status"] = True
+    st.session_state["google_login_done"] = True
     st.success(f"✅ Logged in as {name} ({email})")
     st.switch_page("app.py")
 
