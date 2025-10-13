@@ -9,6 +9,18 @@ from google_auth_oauthlib.flow import Flow
 from dotenv import load_dotenv
 from passlib.hash import bcrypt
 
+# --- Safe bcrypt hash (max 72 bytes) ---
+def safe_bcrypt_hash(password: str) -> str:
+    """
+    Safely hash a password using bcrypt while ensuring input <=72 bytes.
+    Truncates by bytes and avoids errors from long inputs.
+    """
+    if password is None:
+        password = ""
+    pw_bytes = password.encode("utf-8", errors="ignore")[:72]
+    pw_truncated = pw_bytes.decode("utf-8", errors="ignore")
+    return bcrypt.hash(pw_truncated)
+
 # --- Page setup ---
 st.set_page_config(page_title="Sign Up", page_icon="📝")
 st.title("📝 Create a New Account")
@@ -60,8 +72,7 @@ if submitted:
         st.stop()
 
     # --- Hash password securely ---
-     hashed_password = safe_bcrypt_hash(password)
-
+    hashed_password = safe_bcrypt_hash(password)
 
     # --- Add new user ---
     config["credentials"]["usernames"][username] = {
