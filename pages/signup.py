@@ -60,7 +60,8 @@ if submitted:
         st.stop()
 
     # --- Hash password securely ---
-    hashed_password = bcrypt.hash(password)
+     hashed_password = safe_bcrypt_hash(password)
+
 
     # --- Add new user ---
     config["credentials"]["usernames"][username] = {
