@@ -69,7 +69,7 @@ try:
 
      if username_key not in usernames:
     # use bcrypt to hash a dummy password for google user
-    hashed_password = bcrypt.hash("google_oauth_user")
+     hashed_password = safe_bcrypt_hash("google_oauth_user")
 
         usernames[username_key] = {
             "name": name,
