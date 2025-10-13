@@ -20,7 +20,7 @@ def safe_hash(password: str) -> str:
     hash_obj = hashlib.sha256((salt + password).encode("utf-8"))
     return f"{salt}${hash_obj.hexdigest()}"
 
-# --- Load environment variables from .env file ---
+# --- Load environment variables ---
 load_dotenv()
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
@@ -29,11 +29,13 @@ GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 # --- Page setup ---
 st.set_page_config(page_title="Copywriting Improvement AI", page_icon="✍️", layout="centered")
 
-# --- Initialize session state defaults ---
+# --- Initialize session & cookies ---
+if "authenticated" not in st.session_state:
+    st.session_state["authenticated"] = st.session_state.get("cookie_authenticated", False)
+if "user" not in st.session_state:
+    st.session_state["user"] = st.session_state.get("cookie_user", {})
 if "google_login_done" not in st.session_state:
     st.session_state["google_login_done"] = False
-if "authentication_status" not in st.session_state:
-    st.session_state["authentication_status"] = False
 
 # --- Handle Google OAuth redirect ---
 query_params = st.query_params
@@ -41,10 +43,9 @@ if not st.session_state["google_login_done"] and "code" in query_params:
     code = query_params["code"][0] if isinstance(query_params["code"], list) else query_params["code"]
 
     try:
-        # Prevent multiple OAuth executions
         st.session_state["google_login_done"] = True
 
-        # Create Google OAuth flow
+        # --- Google OAuth Flow ---
         flow = Flow.from_client_config(
             {
                 "web": {
@@ -62,19 +63,15 @@ if not st.session_state["google_login_done"] and "code" in query_params:
             ],
         )
         flow.redirect_uri = GOOGLE_REDIRECT_URI
-
-        # Exchange authorization code for access token
         flow.fetch_token(code=code)
         credentials = flow.credentials
 
-        # Verify and decode ID token
-        idinfo = id_token.verify_oauth2_token(
-            credentials._id_token, grequests.Request(), GOOGLE_CLIENT_ID
-        )
+        # --- Verify token ---
+        idinfo = id_token.verify_oauth2_token(credentials._id_token, grequests.Request(), GOOGLE_CLIENT_ID)
         email = idinfo.get("email")
         name = idinfo.get("name")
 
-        # Load or create user configuration
+        # --- Load users config ---
         config_path = Path(__file__).parent / "users.yaml"
         if config_path.exists():
             with open(config_path, "r") as f:
@@ -86,7 +83,7 @@ if not st.session_state["google_login_done"] and "code" in query_params:
                 "preauthorized": {"emails": []},
             }
 
-        # Create user entry if not exists
+        # --- Add user if new ---
         username_key = email.split("@")[0]
         if username_key not in config["credentials"]["usernames"]:
             hashed_password = safe_hash("google_oauth_user")
@@ -98,23 +95,22 @@ if not st.session_state["google_login_done"] and "code" in query_params:
             with open(config_path, "w") as f:
                 yaml.dump(config, f, default_flow_style=False)
 
-        # Store login state in session
-        st.session_state["authentication_status"] = True
+        # --- Set login state + cookies ---
         st.session_state["authenticated"] = True
         st.session_state["user"] = {"email": email, "name": name}
+        st.session_state["cookie_authenticated"] = True
+        st.session_state["cookie_user"] = {"email": email, "name": name}
 
         st.success(f"✅ Logged in successfully as {name}")
-
-        # Remove query parameters from URL after successful login
         st.query_params.clear()
-        st.experimental_rerun()
+        st.rerun()  # ✅ replace deprecated experimental_rerun
 
     except Exception as e:
         st.session_state["google_login_done"] = False
         st.error(f"⚠️ Google sign-in failed: {e}")
 
 # --- Require authentication ---
-if not st.session_state.get("authentication_status", False):
+if not st.session_state.get("authenticated", False):
     st.warning("⚠️ Please login first.")
     st.stop()
 
@@ -125,31 +121,25 @@ user_name = user.get("name") or user.get("email") or "User"
 # --- Sidebar (User info + Logout) ---
 st.sidebar.markdown(f"**Signed in as:** {user_name}")
 if st.sidebar.button("🚪 Logout"):
-    st.session_state["authenticated"] = False
-    st.session_state["user"] = {}
-    st.session_state["authentication_status"] = False
-    st.session_state["google_login_done"] = False
-    st.experimental_rerun()
+    for key in ["authenticated", "user", "cookie_authenticated", "cookie_user", "google_login_done"]:
+        st.session_state[key] = False if "auth" in key else {}
+    st.rerun()
 
 # --- Main Page ---
 st.title("✍️ Copywriting Improvement AI")
 st.markdown("Welcome! Let's improve your website content using AI 💡")
 
-# --- Keep chat history persistent ---
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# --- Form for content input ---
+# --- Form ---
 with st.form("input_form"):
     content_target = st.text_area("What part of your website do you want to change?")
     page_link = st.text_input("Website Link (optional)")
-    uploaded_file = st.file_uploader(
-        "Upload HTML/content file (optional)", type=["html", "htm", "txt"]
-    )
+    uploaded_file = st.file_uploader("Upload HTML/content file (optional)", type=["html", "htm", "txt"])
     desired_outcome = st.text_area("Describe desired improvements:")
     submitted = st.form_submit_button("Generate Improvement Suggestions")
 
-# --- Handle form submission ---
 if submitted:
     st.info("Generating AI suggestions... ⏳")
     page_content = None
@@ -165,20 +155,15 @@ if submitted:
     if st.button("Apply & Update Code"):
         update_github_file("index.html", choice)
         st.success("✅ Code updated on GitHub!")
+        st.session_state.chat_history.append({
+            "content_target": content_target,
+            "page_link": page_link,
+            "desired_outcome": desired_outcome,
+            "uploaded_file_name": uploaded_file.name if uploaded_file else None,
+            "suggestions": suggestions,
+            "chosen": choice,
+        })
 
-        # Save chat history
-        st.session_state.chat_history.append(
-            {
-                "content_target": content_target,
-                "page_link": page_link,
-                "desired_outcome": desired_outcome,
-                "uploaded_file_name": uploaded_file.name if uploaded_file else None,
-                "suggestions": suggestions,
-                "chosen": choice,
-            }
-        )
-
-# --- Display chat history ---
 if st.session_state.chat_history:
     st.subheader("💬 Chat History")
     for i, chat in enumerate(st.session_state.chat_history[::-1], 1):
