@@ -5,15 +5,16 @@ from pathlib import Path
 import re
 import os
 from dotenv import load_dotenv
-from passlib.hash import bcrypt
+import hashlib
+import secrets
 
-# --- Safe bcrypt hash (truncate to 72 bytes) ---
-def safe_bcrypt_hash(password: str) -> str:
+# --- Secure hash function (SHA-256 + salt, no 72-byte limit) ---
+def safe_hash(password: str) -> str:
     if password is None:
         password = ""
-    pw_bytes = password.encode("utf-8")[:72]  # truncate to 72 bytes
-    pw_truncated = pw_bytes.decode("utf-8", errors="ignore")
-    return bcrypt.hash(pw_truncated)
+    salt = secrets.token_hex(16)
+    hash_obj = hashlib.sha256((salt + password).encode("utf-8"))
+    return f"{salt}${hash_obj.hexdigest()}"
 
 # --- Page setup ---
 st.set_page_config(page_title="Sign Up", page_icon="📝")
@@ -54,8 +55,7 @@ if submitted:
         st.warning("⚠️ Username already exists. Please choose another one.")
         st.stop()
 
-    hashed_password = safe_bcrypt_hash(password)
-
+    hashed_password = safe_hash(password)
     config["credentials"]["usernames"][username] = {
         "name": name,
         "email": email,
@@ -71,7 +71,6 @@ if submitted:
 # --- Google Sign Up ---
 load_dotenv()
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 
 st.markdown("----")
