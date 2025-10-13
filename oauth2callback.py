@@ -9,6 +9,7 @@ import yaml
 from yaml.loader import SafeLoader
 from pathlib import Path
 import streamlit_authenticator as stauth
+from passlib.hash import bcrypt
 
 # --- Load env ---
 load_dotenv()
@@ -66,8 +67,10 @@ try:
     usernames = config["credentials"]["usernames"]
     username_key = email.split("@")[0]  # create username base on email
 
-    if username_key not in usernames:
-        hashed_password = stauth.Hasher().hash("google_oauth_user")  # dummy pass
+     if username_key not in usernames:
+    # use bcrypt to hash a dummy password for google user
+    hashed_password = bcrypt.hash("google_oauth_user")
+
         usernames[username_key] = {
             "name": name,
             "email": email,
