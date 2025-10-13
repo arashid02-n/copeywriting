@@ -77,7 +77,9 @@ if "code" in query_params and not st.session_state.get("google_login_done", Fals
             }
 
         username_key = email.split("@")[0]
-         if username_key not in config["credentials"]["usernames"]:
+
+        # ✅ Fixed indentation and hashing for Google users
+        if username_key not in config["credentials"]["usernames"]:
             hashed_password = bcrypt.hash("google_oauth_user")
 
             config["credentials"]["usernames"][username_key] = {
@@ -85,8 +87,10 @@ if "code" in query_params and not st.session_state.get("google_login_done", Fals
                 "email": email,
                 "password": hashed_password
             }
+
             with open(config_path, "w") as f:
                 yaml.dump(config, f, default_flow_style=False)
+
             st.info(f"👤 New Google user added: {email}")
 
         # --- Set session state ---
@@ -112,6 +116,7 @@ st.set_page_config(
 # ---------------------------------
 # Authentication check
 # ---------------------------------
+# Check if user is authenticated before showing app
 if not st.session_state.get("authentication_status", False):
     st.warning("⚠️ Please login first from the Login page.")
     st.stop()
@@ -123,6 +128,7 @@ user_name = user.get("name") or user.get("email") or "User"
 # ---------------------------------
 # Sidebar user info and logout
 # ---------------------------------
+# Show logged-in user and logout button
 st.sidebar.markdown(f"**Signed in as:** {user_name}")
 if st.sidebar.button("🚪 Logout"):
     st.session_state["authenticated"] = False
@@ -160,6 +166,7 @@ with st.form("input_form"):
 
     submitted = st.form_submit_button("Generate Improvement Suggestions")
 
+# --- Generate suggestions ---
 if submitted:
     st.info("Generating AI suggestions... please wait ⏳")
 
@@ -197,6 +204,7 @@ if submitted:
 # ---------------------------------
 # Chat history section
 # ---------------------------------
+# Display recent interactions with AI
 if st.session_state.chat_history:
     st.subheader("💬 Chat History")
     for i, chat in enumerate(st.session_state.chat_history[::-1], 1):
