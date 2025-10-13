@@ -2,13 +2,14 @@ import streamlit as st
 import yaml
 from yaml.loader import SafeLoader
 from pathlib import Path
-import streamlit_authenticator as stauth
 import os
 from dotenv import load_dotenv
+import streamlit_authenticator as stauth
 
 st.set_page_config(page_title="Login", page_icon="🔐")
 st.title("🔐 Login")
 
+# --- Load config ---
 config_path = Path(__file__).parent.parent / "users.yaml"
 try:
     with open(config_path) as file:
@@ -35,7 +36,7 @@ except Exception as e:
     st.error(f"⚠️ Error loading login form: {e}")
     st.stop()
 
-# --- Google Login ---
+# --- Google login ---
 load_dotenv()
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
@@ -55,9 +56,6 @@ st.markdown(f"[🔵 Log in with Google]({google_url})", unsafe_allow_html=True)
 if auth_status:
     st.success(f"✅ Welcome, {name}!")
     authenticator.logout("Logout", "sidebar")
-    st.session_state["authentication_status"] = True
-    st.session_state["authenticated"] = True
-    st.session_state["user"] = {"name": name, "email": username}
 elif auth_status is False:
     st.error("❌ Incorrect username or password.")
 else:
