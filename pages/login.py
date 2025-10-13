@@ -44,8 +44,10 @@ if submitted:
             st.session_state["authenticated"] = True
             st.session_state["user"] = {"name": usernames[username]["name"], "email": usernames[username]["email"]}
             st.success(f"✅ Welcome, {usernames[username]['name']}!")
-            st.session_state["rerun"] = True
-            st.experimental_set_query_params()  # triggers rerun
+            # Trigger a rerun using the new Streamlit query_params API
+            st.session_state["rerun"] = True  # optional flag
+            st.query_params = st.query_params  # forces a rerun
+
         else:
             st.error("❌ Incorrect password.")
 
