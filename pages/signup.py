@@ -3,21 +3,15 @@ import yaml
 from yaml.loader import SafeLoader
 from pathlib import Path
 import re
-import streamlit_authenticator as stauth
-import os
-from google_auth_oauthlib.flow import Flow
-from dotenv import load_dotenv
 from passlib.hash import bcrypt
+from dotenv import load_dotenv
+import os
 
-# --- Safe bcrypt hash (max 72 bytes) ---
+# --- Safe bcrypt hash (truncate to 72 bytes) ---
 def safe_bcrypt_hash(password: str) -> str:
-    """
-    Safely hash a password using bcrypt while ensuring input <=72 bytes.
-    Truncates by bytes and avoids errors from long inputs.
-    """
     if password is None:
         password = ""
-    pw_bytes = password.encode("utf-8", errors="ignore")[:72]
+    pw_bytes = password.encode("utf-8")[:72]
     pw_truncated = pw_bytes.decode("utf-8", errors="ignore")
     return bcrypt.hash(pw_truncated)
 
@@ -25,14 +19,13 @@ def safe_bcrypt_hash(password: str) -> str:
 st.set_page_config(page_title="Sign Up", page_icon="📝")
 st.title("📝 Create a New Account")
 
-# --- Load users config ---
+# --- Load users.yaml ---
 config_path = Path(__file__).parent.parent / "users.yaml"
-
 try:
     with open(config_path) as file:
         config = yaml.load(file, Loader=SafeLoader)
 except FileNotFoundError:
-    st.error("❌ Configuration file not found. Please contact the administrator.")
+    st.error("❌ Configuration file not found.")
     st.stop()
 
 # --- Sign up form ---
@@ -45,60 +38,44 @@ with st.form("signup_form", clear_on_submit=True):
     submitted = st.form_submit_button("Sign Up")
 
 if submitted:
-    # ✅ Validation 1: All fields filled
+    # Validation
     if not all([name, username, email, password, confirm]):
         st.error("⚠️ Please fill in all fields.")
         st.stop()
-
-    # ✅ Validation 2: Email format
-    email_pattern = r"^[\w\.-]+@[\w\.-]+\.\w+$"
-    if not re.match(email_pattern, email):
+    if not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", email):
         st.error("❌ Invalid email format.")
         st.stop()
-
-    # ✅ Validation 3: Password length
     if len(password) < 8:
-        st.error("❌ Password must be at least 8 characters long.")
+        st.error("❌ Password must be at least 8 characters.")
         st.stop()
-
-    # ✅ Validation 4: Password match
     if password != confirm:
         st.error("❌ Passwords do not match.")
         st.stop()
-
-    # ✅ Validation 5: Username availability
     if username in config["credentials"]["usernames"]:
-        st.warning("⚠️ Username already exists. Please choose another one.")
+        st.warning("⚠️ Username already exists.")
         st.stop()
-
-    # --- Hash password securely ---
-    hashed_password = safe_bcrypt_hash(password)
 
     # --- Add new user ---
     config["credentials"]["usernames"][username] = {
         "name": name,
         "email": email,
-        "password": hashed_password,
+        "password": safe_bcrypt_hash(password)
     }
 
-    # --- Save updated users to YAML ---
     with open(config_path, "w") as file:
         yaml.dump(config, file, default_flow_style=False)
 
-    st.success("✅ Account created successfully! You can now log in.")
+    st.success("✅ Account created successfully!")
     st.switch_page("pages/login.py")
 
-# --- Google Sign Up button ---
+# --- Google Sign Up ---
 load_dotenv()
-
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 
 st.markdown("----")
 st.markdown("### Or Sign Up with Google")
 
-# Build Google OAuth URL manually
 google_url = (
     "https://accounts.google.com/o/oauth2/auth"
     f"?client_id={GOOGLE_CLIENT_ID}"
@@ -107,5 +84,4 @@ google_url = (
     "&scope=openid%20https://www.googleapis.com/auth/userinfo.profile%20https://www.googleapis.com/auth/userinfo.email"
     "&access_type=offline"
 )
-
 st.markdown(f"[🟢 Continue with Google]({google_url})", unsafe_allow_html=True)
