@@ -8,10 +8,12 @@ from dotenv import load_dotenv
 
 # --- Page config ---
 st.set_page_config(page_title="Login", page_icon="🔐")
+
 st.title("🔐 Login")
 
-# --- Load users.yaml ---
+# --- Load config file ---
 config_path = Path(__file__).parent.parent / "users.yaml"
+
 try:
     with open(config_path) as file:
         config = yaml.load(file, Loader=SafeLoader)
@@ -34,13 +36,14 @@ except Exception as e:
 
 # --- Create login form ---
 try:
-    name, authentication_status, username = authenticator.login("Login", "main")
+    authenticator.login(location="main", fields={'Form name': 'User Login'})
 except Exception as e:
     st.error(f"⚠️ Error loading login form: {e}")
     st.stop()
 
 # --- Google Login ---
 load_dotenv()
+
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 
@@ -58,16 +61,14 @@ google_url = (
 st.markdown(f"[🔵 Log in with Google]({google_url})", unsafe_allow_html=True)
 
 # --- Handle login state ---
-if authentication_status:
+auth_status = st.session_state.get("authentication_status")
+name = st.session_state.get("user", {}).get("name")
+
+if auth_status:
     st.success(f"✅ Welcome, {name}!")
     authenticator.logout("Logout", "sidebar")
-    st.session_state["authentication_status"] = True
-    st.session_state["authenticated"] = True
-    st.session_state["user"] = {"name": name, "email": username}
-    st.session_state["google_login_done"] = False
-    st.experimental_rerun()
 
-elif authentication_status is False:
+elif auth_status is False:
     st.error("❌ Incorrect username or password.")
 
 else:
