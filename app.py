@@ -8,6 +8,20 @@ from yaml.loader import SafeLoader
 from pathlib import Path
 import streamlit_authenticator as stauth
 from passlib.hash import bcrypt
+def safe_bcrypt_hash(password: str) -> str:
+    """
+    Safely hash a password using bcrypt while ensuring the input
+    is at most 72 bytes (bcrypt limitation).
+    This truncates by bytes (utf-8) and decodes with 'ignore' to avoid
+    invalid utf-8 sequences. Returns the bcrypt hash string.
+    """
+    if password is None:
+        password = ""
+    # encode to bytes and truncate to 72 bytes
+    pw_bytes = password.encode("utf-8", errors="ignore")[:72]
+    # decode back to string (ignore invalid trailing bytes)
+    pw_truncated = pw_bytes.decode("utf-8", errors="ignore")
+    return bcrypt.hash(pw_truncated)
 
 # --- Google OAuth dependencies ---
 from google_auth_oauthlib.flow import Flow
