@@ -9,7 +9,7 @@ load_dotenv()
 # Configuration from environment
 # ------------------------------
 HF_API_KEY = os.getenv("HF_API_KEY")  # Hugging Face API Key
-HF_MODEL = os.getenv("HF_MODEL", "TheBloke/deepseek-coder-1.3b-instruct-GGUF")  # Default model ID
+HF_MODEL = os.getenv("HF_MODEL", "tiiuae/falcon-7b-instruct")  # Default model ID
 
 # ------------------------------
 # Helper function to call Hugging Face Inference API
