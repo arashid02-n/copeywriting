@@ -8,18 +8,16 @@ from yaml.loader import SafeLoader
 from pathlib import Path
 import streamlit_authenticator as stauth
 from passlib.hash import bcrypt
+
+# --- Safe bcrypt hash ---
 def safe_bcrypt_hash(password: str) -> str:
     """
-    Safely hash a password using bcrypt while ensuring the input
-    is at most 72 bytes (bcrypt limitation).
-    This truncates by bytes (utf-8) and decodes with 'ignore' to avoid
-    invalid utf-8 sequences. Returns the bcrypt hash string.
+    Safely hash a password using bcrypt.
+    Truncates to 72 bytes (bcrypt limit) before hashing.
     """
     if password is None:
         password = ""
-    # encode to bytes and truncate to 72 bytes
     pw_bytes = password.encode("utf-8", errors="ignore")[:72]
-    # decode back to string (ignore invalid trailing bytes)
     pw_truncated = pw_bytes.decode("utf-8", errors="ignore")
     return bcrypt.hash(pw_truncated)
 
@@ -28,26 +26,19 @@ from google_auth_oauthlib.flow import Flow
 from google.oauth2 import id_token
 from google.auth.transport import requests as grequests
 
-# ---------------------------------
-# Load environment variables
-# ---------------------------------
+# Load env
 load_dotenv()
-
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 
-# ---------------------------------
 # Handle Google OAuth callback
-# ---------------------------------
 query_params = st.query_params
-
 if "code" in query_params and not st.session_state.get("google_login_done", False):
     st.write("⏳ Completing Google sign-in...")
     code = query_params["code"][0] if isinstance(query_params["code"], list) else query_params["code"]
 
     try:
-        # --- Initialize Google OAuth flow ---
         flow = Flow.from_client_config(
             {
                 "web": {
@@ -68,7 +59,7 @@ if "code" in query_params and not st.session_state.get("google_login_done", Fals
         flow.fetch_token(code=code)
         credentials = flow.credentials
 
-        # --- Verify token and extract user info ---
+        # Verify token
         idinfo = id_token.verify_oauth2_token(
             credentials._id_token,
             grequests.Request(),
@@ -78,7 +69,7 @@ if "code" in query_params and not st.session_state.get("google_login_done", Fals
         email = idinfo.get("email")
         name = idinfo.get("name")
 
-        # --- Save user in users.yaml if not exists ---
+        # Save user in users.yaml if not exists
         config_path = Path(__file__).parent / "users.yaml"
         if config_path.exists():
             with open(config_path, "r") as f:
@@ -92,10 +83,8 @@ if "code" in query_params and not st.session_state.get("google_login_done", Fals
 
         username_key = email.split("@")[0]
 
-        # ✅ Fixed indentation and hashing for Google users
         if username_key not in config["credentials"]["usernames"]:
             hashed_password = safe_bcrypt_hash("google_oauth_user")
-
             config["credentials"]["usernames"][username_key] = {
                 "name": name or username_key,
                 "email": email,
@@ -107,7 +96,6 @@ if "code" in query_params and not st.session_state.get("google_login_done", Fals
 
             st.info(f"👤 New Google user added: {email}")
 
-        # --- Set session state ---
         st.session_state["authentication_status"] = True
         st.session_state["authenticated"] = True
         st.session_state["user"] = {"email": email, "name": name}
@@ -118,42 +106,27 @@ if "code" in query_params and not st.session_state.get("google_login_done", Fals
     except Exception as e:
         st.error(f"⚠️ Google sign-in failed: {e}")
 
-# ---------------------------------
-# Streamlit Page Configuration
-# ---------------------------------
-st.set_page_config(
-    page_title="Copywriting Improvement AI",
-    page_icon="✍️",
-    layout="centered"
-)
+# Streamlit Page Config
+st.set_page_config(page_title="Copywriting Improvement AI", page_icon="✍️", layout="centered")
 
-# ---------------------------------
 # Authentication check
-# ---------------------------------
-# Check if user is authenticated before showing app
 if not st.session_state.get("authentication_status", False):
     st.warning("⚠️ Please login first from the Login page.")
     st.stop()
 
-# Retrieve user info from session_state
 user = st.session_state.get("user", {})
 user_name = user.get("name") or user.get("email") or "User"
 
-# ---------------------------------
-# Sidebar user info and logout
-# ---------------------------------
-# Show logged-in user and logout button
+# Sidebar info and logout
 st.sidebar.markdown(f"**Signed in as:** {user_name}")
 if st.sidebar.button("🚪 Logout"):
     st.session_state["authenticated"] = False
     st.session_state["user"] = {}
     st.session_state["authentication_status"] = False
     st.session_state["google_login_done"] = False
-    st.experimental_rerun()  # safe only here
+    st.experimental_rerun()
 
-# ---------------------------------
-# Main app content
-# ---------------------------------
+# Main content
 st.title("✍️ Copywriting Improvement AI")
 st.markdown("Welcome! Let's improve your website content using AI 💡")
 
@@ -161,29 +134,15 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
 with st.form("input_form"):
-    content_target = st.text_area(
-        "What part of your website do you want to change?",
-        placeholder="Example: Homepage headline, product section, CTA button text..."
-    )
-
+    content_target = st.text_area("What part of your website do you want to change?", placeholder="Example: Homepage headline, product section, CTA button text...")
     st.markdown("Provide your website link **or** upload your page files (HTML, etc.)")
     page_link = st.text_input("Website Link (optional)")
-    uploaded_file = st.file_uploader(
-        "Upload your HTML or content file (optional)",
-        type=["html", "htm", "txt"]
-    )
-
-    desired_outcome = st.text_area(
-        "Describe how you want the improved content to be:",
-        placeholder="Example: More persuasive, clearer message, better conversion rate..."
-    )
-
+    uploaded_file = st.file_uploader("Upload your HTML or content file (optional)", type=["html", "htm", "txt"])
+    desired_outcome = st.text_area("Describe how you want the improved content to be:", placeholder="Example: More persuasive, clearer message, better conversion rate...")
     submitted = st.form_submit_button("Generate Improvement Suggestions")
 
-# --- Generate suggestions ---
 if submitted:
     st.info("Generating AI suggestions... please wait ⏳")
-
     page_content = None
     if uploaded_file is not None:
         try:
@@ -191,21 +150,14 @@ if submitted:
         except Exception:
             page_content = uploaded_file.read().decode("latin-1")
 
-    suggestions = run_agents(
-        content_target=content_target,
-        page_link=page_link,
-        page_content=page_content,
-        desired_outcome=desired_outcome
-    )
+    suggestions = run_agents(content_target=content_target, page_link=page_link, page_content=page_content, desired_outcome=desired_outcome)
 
     st.subheader("💡 AI Suggestions")
     choice = st.radio("Select the one you like best:", suggestions)
 
     if st.button("Apply & Update Code"):
-        file_path = "index.html"
-        update_github_file(file_path, choice)
+        update_github_file("index.html", choice)
         st.success("✅ Code updated successfully on GitHub!")
-
         st.session_state.chat_history.append({
             "content_target": content_target,
             "page_link": page_link,
@@ -215,10 +167,6 @@ if submitted:
             "chosen": choice
         })
 
-# ---------------------------------
-# Chat history section
-# ---------------------------------
-# Display recent interactions with AI
 if st.session_state.chat_history:
     st.subheader("💬 Chat History")
     for i, chat in enumerate(st.session_state.chat_history[::-1], 1):
