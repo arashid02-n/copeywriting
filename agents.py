@@ -1,15 +1,21 @@
 import os
-from dotenv import load_dotenv  # Load environment variables from .env
+from dotenv import load_dotenv
 import requests
 from typing import List, Optional
-# Load .env file automatically
-load_dotenv()
 
-# ------------------------------
-# Configuration from environment
-# ------------------------------
-HF_API_KEY = os.getenv("HF_API_KEY")  # Hugging Face API Key
-HF_MODEL = os.getenv("HF_MODEL", "tiiuae/falcon-7b-instruct")  # Default model ID
+# --- Load .env file ---
+dotenv_loaded = load_dotenv()
+if not dotenv_loaded:
+    print("⚠️ Warning: .env file not loaded. Make sure it exists in the project root.")
+
+# --- Configuration from environment ---
+HF_API_KEY = os.getenv("HF_API_KEY")
+HF_MODEL = os.getenv("HF_MODEL", "tiiuae/falcon-7b-instruct")  # Default model if env missing
+
+if not HF_API_KEY:
+    raise RuntimeError("HF_API_KEY is not set. Please add it to your .env file.")
+
+print(f"Using HF_MODEL: {HF_MODEL}")  # Debug: check which model is loaded
 
 # ------------------------------
 # Helper function to call Hugging Face Inference API
@@ -18,9 +24,6 @@ def call_hf_inference(prompt: str, max_tokens: int = 400) -> str:
     """
     Calls Hugging Face Inference API to generate text completions.
     """
-    if not HF_API_KEY:
-        raise RuntimeError("HF_API_KEY is not set. Please add it to your .env file.")
-
     url = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
     headers = {
         "Authorization": f"Bearer {HF_API_KEY}",
@@ -32,8 +35,16 @@ def call_hf_inference(prompt: str, max_tokens: int = 400) -> str:
         "options": {"wait_for_model": True}
     }
 
-    response = requests.post(url, headers=headers, json=payload, timeout=120)
-    response.raise_for_status()
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=120)
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        # Catch 403 and provide a clear message
+        if response.status_code == 403:
+            raise RuntimeError(f"403 Forbidden: Check your HF_API_KEY or model access. Model: {HF_MODEL}")
+        else:
+            raise e
+
     data = response.json()
 
     # Parse possible response formats
@@ -91,7 +102,6 @@ Only return the numbered suggestions.
             cleaned = line.split(maxsplit=1)[1] if len(line.split(maxsplit=1)) > 1 else line
             suggestions.append(cleaned.strip())
         else:
-            # fallback: if fewer than 4, just take lines
             if len(suggestions) < 4:
                 suggestions.append(line)
 
