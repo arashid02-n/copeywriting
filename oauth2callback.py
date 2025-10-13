@@ -7,21 +7,23 @@ from dotenv import load_dotenv
 import yaml
 from yaml.loader import SafeLoader
 from pathlib import Path
-from passlib.hash import bcrypt
+import hashlib
+import secrets
 
-# --- Safe bcrypt hash (truncate 72 bytes) ---
-def safe_bcrypt_hash(password: str) -> str:
+# --- Secure hash function (SHA-256 + salt) ---
+def safe_hash(password: str) -> str:
     if password is None:
         password = ""
-    pw_bytes = password.encode("utf-8")[:72]
-    pw_truncated = pw_bytes.decode("utf-8", errors="ignore")
-    return bcrypt.hash(pw_truncated)
+    salt = secrets.token_hex(16)
+    hash_obj = hashlib.sha256((salt + password).encode("utf-8"))
+    return f"{salt}${hash_obj.hexdigest()}"
 
 load_dotenv()
 st.set_page_config(page_title="Google Auth", page_icon="🔑")
 st.write("⏳ Authenticating with Google...")
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 
 query_params = st.query_params
@@ -34,7 +36,7 @@ try:
         {
             "web": {
                 "client_id": GOOGLE_CLIENT_ID,
-                "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
+                "client_secret": GOOGLE_CLIENT_SECRET,
                 "redirect_uris": [GOOGLE_REDIRECT_URI],
                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                 "token_uri": "https://oauth2.googleapis.com/token",
@@ -45,12 +47,15 @@ try:
     flow.redirect_uri = GOOGLE_REDIRECT_URI
     flow.fetch_token(code=query_params["code"][0])
     credentials = flow.credentials
-    idinfo = id_token.verify_oauth2_token(credentials._id_token, requests.Request(), GOOGLE_CLIENT_ID)
+    idinfo = id_token.verify_oauth2_token(
+        credentials._id_token,
+        requests.Request(),
+        GOOGLE_CLIENT_ID
+    )
 
     email = idinfo.get("email")
     name = idinfo.get("name")
 
-    # --- Load YAML ---
     config_path = Path(__file__).parent / "users.yaml"
     if not config_path.exists():
         st.error("❌ users.yaml file not found on server.")
@@ -62,7 +67,7 @@ try:
     username_key = email.split("@")[0]
 
     if username_key not in usernames:
-        hashed_password = safe_bcrypt_hash("google_oauth_user")
+        hashed_password = safe_hash("google_oauth_user")
         usernames[username_key] = {"name": name, "email": email, "password": hashed_password}
         with open(config_path, "w") as f:
             yaml.dump(config, f, default_flow_style=False)
@@ -70,8 +75,6 @@ try:
 
     st.session_state["authenticated"] = True
     st.session_state["user"] = {"email": email, "name": name}
-    st.session_state["authentication_status"] = True
-    st.session_state["google_login_done"] = True
     st.success(f"✅ Logged in as {name} ({email})")
     st.switch_page("app.py")
 
