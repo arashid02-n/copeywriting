@@ -9,7 +9,6 @@ from google_auth_oauthlib.flow import Flow
 from dotenv import load_dotenv
 from passlib.hash import bcrypt
 
-
 # --- Page setup ---
 st.set_page_config(page_title="Sign Up", page_icon="📝")
 st.title("📝 Create a New Account")
@@ -61,7 +60,8 @@ if submitted:
         st.stop()
 
     # --- Hash password securely ---
-     hashed_password = bcrypt.hash(password)
+    hashed_password = bcrypt.hash(password)
+
     # --- Add new user ---
     config["credentials"]["usernames"][username] = {
         "name": name,
@@ -75,7 +75,8 @@ if submitted:
 
     st.success("✅ Account created successfully! You can now log in.")
     st.switch_page("pages/login.py")
-    # --- Google Sign Up button ---
+
+# --- Google Sign Up button ---
 load_dotenv()
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
@@ -94,4 +95,5 @@ google_url = (
     "&scope=openid%20https://www.googleapis.com/auth/userinfo.profile%20https://www.googleapis.com/auth/userinfo.email"
     "&access_type=offline"
 )
+
 st.markdown(f"[🟢 Continue with Google]({google_url})", unsafe_allow_html=True)
