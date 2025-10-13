@@ -20,13 +20,23 @@ def safe_hash(password: str) -> str:
     hash_obj = hashlib.sha256((salt + password).encode("utf-8"))
     return f"{salt}${hash_obj.hexdigest()}"
 
+# --- Initialize ---
+st.set_page_config(page_title="Copywriting Improvement AI", page_icon="✍️", layout="centered")
 load_dotenv()
+
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 
+# --- Initialize session states ---
+if "authentication_status" not in st.session_state:
+    st.session_state["authentication_status"] = False
+if "google_login_done" not in st.session_state:
+    st.session_state["google_login_done"] = False
+
+# --- Handle Google OAuth callback (only once) ---
 query_params = st.query_params
-if "code" in query_params and not st.session_state.get("google_login_done", False):
+if not st.session_state["google_login_done"] and "code" in query_params:
     code = query_params["code"][0] if isinstance(query_params["code"], list) else query_params["code"]
     try:
         flow = Flow.from_client_config(
@@ -67,15 +77,16 @@ if "code" in query_params and not st.session_state.get("google_login_done", Fals
         st.session_state["user"] = {"email": email, "name": name}
         st.session_state["google_login_done"] = True
         st.success(f"✅ Logged in successfully as {name}")
+
     except Exception as e:
         st.error(f"⚠️ Google sign-in failed: {e}")
 
-# --- Streamlit config ---
-st.set_page_config(page_title="Copywriting Improvement AI", page_icon="✍️", layout="centered")
+# --- Require login ---
 if not st.session_state.get("authentication_status", False):
     st.warning("⚠️ Please login first.")
     st.stop()
 
+# --- Sidebar ---
 user = st.session_state.get("user", {})
 user_name = user.get("name") or user.get("email") or "User"
 
@@ -87,6 +98,7 @@ if st.sidebar.button("🚪 Logout"):
     st.session_state["google_login_done"] = False
     st.experimental_rerun()
 
+# --- Main app ---
 st.title("✍️ Copywriting Improvement AI")
 st.markdown("Welcome! Let's improve your website content using AI 💡")
 
