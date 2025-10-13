@@ -31,12 +31,6 @@ if "code" not in query_params:
     st.error("❌ Invalid OAuth request — no code parameter found.")
     st.stop()
 
-# ✅ اگر قبلاً لاگین شده، دوباره اجرا نکن
-if st.session_state.get("authenticated"):
-    st.success(f"✅ Already logged in as {st.session_state['user']['name']}")
-    st.switch_page("app.py")
-    st.stop()
-
 try:
     flow = Flow.from_client_config(
         {
@@ -62,6 +56,7 @@ try:
     if not config_path.exists():
         st.error("❌ users.yaml file not found on server.")
         st.stop()
+
     with open(config_path, "r") as f:
         config = yaml.load(f, Loader=SafeLoader)
 
@@ -76,8 +71,10 @@ try:
         st.info(f"👤 New Google user added: {email}")
 
     st.session_state["authenticated"] = True
+    st.session_state["cookie_authenticated"] = True
     st.session_state["user"] = {"email": email, "name": name}
-    st.session_state["google_login_done"] = True
+    st.session_state["cookie_user"] = {"email": email, "name": name}
+
     st.success(f"✅ Logged in as {name} ({email})")
     st.switch_page("app.py")
 
