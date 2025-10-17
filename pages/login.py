@@ -1,31 +1,14 @@
 import streamlit as st
-import yaml
-from yaml.loader import SafeLoader
-from pathlib import Path
 import os
 from dotenv import load_dotenv
-import hashlib
+from db import init_db, get_user_by_username, verify_hash, set_last_login  # using db.py functions
 
-# --- Secure hash check ---
-def verify_hash(password: str, hashed: str) -> bool:
-    try:
-        salt, hash_val = hashed.split("$")
-        return hashlib.sha256((salt + password).encode("utf-8")).hexdigest() == hash_val
-    except Exception:
-        return False
+# --- Initialize database ---
+init_db()
 
 # --- Page config ---
 st.set_page_config(page_title="Login", page_icon="🔐")
 st.title("🔐 Login")
-
-# --- Load users.yaml ---
-config_path = Path(__file__).parent.parent / "users.yaml"
-try:
-    with open(config_path) as file:
-        config = yaml.load(file, Loader=SafeLoader)
-except FileNotFoundError:
-    st.error("❌ User configuration file not found.")
-    st.stop()
 
 # --- Login form ---
 with st.form("login_form"):
@@ -34,20 +17,23 @@ with st.form("login_form"):
     submitted = st.form_submit_button("Login")
 
 if submitted:
-    usernames = config["credentials"]["usernames"]
-    if username not in usernames:
+    user_row = get_user_by_username(username)
+    if not user_row:
         st.error("❌ Username does not exist.")
     else:
-        stored_hash = usernames[username]["password"]
+        stored_hash = user_row["password_hash"]
         if verify_hash(password, stored_hash):
             st.session_state["authentication_status"] = True
             st.session_state["authenticated"] = True
-            st.session_state["user"] = {"name": usernames[username]["name"], "email": usernames[username]["email"]}
-            st.success(f"✅ Welcome, {usernames[username]['name']}!")
-            # Trigger a rerun using the new Streamlit query_params API
-            st.session_state["rerun"] = True  # optional flag
+            st.session_state["user"] = {
+                "id": user_row["id"],
+                "name": user_row["name"],
+                "email": user_row["email"]
+            }
+            set_last_login(user_row["id"])
+            st.success(f"✅ Welcome, {user_row['name']}!")
+            st.session_state["rerun"] = True
             st.query_params = st.query_params  # forces a rerun
-
         else:
             st.error("❌ Incorrect password.")
 
