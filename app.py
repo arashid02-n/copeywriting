@@ -11,6 +11,7 @@ import secrets
 from google_auth_oauthlib.flow import Flow
 from google.oauth2 import id_token
 from google.auth.transport import requests as grequests
+from db import get_credits, deduct_credits, add_prompt_record  # add to imports
 
 # --- Secure password hashing (SHA-256 + salt) ---
 def safe_hash(password: str) -> str:
@@ -71,29 +72,41 @@ if not st.session_state["google_login_done"] and "code" in query_params:
         email = idinfo.get("email")
         name = idinfo.get("name")
 
-        # --- Load users config ---
-        config_path = Path(__file__).parent / "users.yaml"
-        if config_path.exists():
-            with open(config_path, "r") as f:
-                config = yaml.load(f, Loader=SafeLoader)
-        else:
-            config = {
-                "credentials": {"usernames": {}},
-                "cookie": {"name": "copey_cookie", "key": "secret_key", "expiry_days": 30},
-                "preauthorized": {"emails": []},
-            }
+       # --- Load or create SQLite users database ---
+import sqlite3
+DB_PATH = Path(__file__).parent / "users.db"
 
-        # --- Add user if new ---
-        username_key = email.split("@")[0]
-        if username_key not in config["credentials"]["usernames"]:
-            hashed_password = safe_hash("google_oauth_user")
-            config["credentials"]["usernames"][username_key] = {
-                "name": name or username_key,
-                "email": email,
-                "password": hashed_password,
-            }
-            with open(config_path, "w") as f:
-                yaml.dump(config, f, default_flow_style=False)
+conn = sqlite3.connect(DB_PATH)
+cur = conn.cursor()
+
+# --- Ensure users table exists ---
+cur.execute("""
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE,
+    name TEXT,
+    email TEXT UNIQUE,
+    password TEXT,
+    credits INTEGER DEFAULT 0
+)
+""")
+conn.commit()
+
+# --- Add user if new ---
+username_key = email.split("@")[0]
+cur.execute("SELECT id FROM users WHERE email = ?", (email,))
+existing_user = cur.fetchone()
+
+if not existing_user:
+    hashed_password = safe_hash("google_oauth_user")
+    cur.execute(
+        "INSERT INTO users (username, name, email, password, credits) VALUES (?, ?, ?, ?, ?)",
+        (username_key, name or username_key, email, hashed_password, 0)
+    )
+    conn.commit()
+    st.info(f"👤 New Google user added: {email}")
+
+conn.close()
 
         # --- Set login state + cookies ---
         st.session_state["authenticated"] = True
