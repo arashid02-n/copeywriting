@@ -1,33 +1,15 @@
 import streamlit as st
-import yaml
-from yaml.loader import SafeLoader
-from pathlib import Path
 import re
 import os
 from dotenv import load_dotenv
-import hashlib
-import secrets
+from db import init_db, create_user, get_user_by_username, get_user_by_email  # DB functions
 
-# --- Secure hash function (SHA-256 + salt, no 72-byte limit) ---
-def safe_hash(password: str) -> str:
-    if password is None:
-        password = ""
-    salt = secrets.token_hex(16)
-    hash_obj = hashlib.sha256((salt + password).encode("utf-8"))
-    return f"{salt}${hash_obj.hexdigest()}"
+# --- Initialize database ---
+init_db()
 
 # --- Page setup ---
 st.set_page_config(page_title="Sign Up", page_icon="📝")
 st.title("📝 Create a New Account")
-
-# --- Load users.yaml ---
-config_path = Path(__file__).parent.parent / "users.yaml"
-try:
-    with open(config_path) as file:
-        config = yaml.load(file, Loader=SafeLoader)
-except FileNotFoundError:
-    st.error("❌ Configuration file not found.")
-    st.stop()
 
 # --- Sign up form ---
 with st.form("signup_form", clear_on_submit=True):
@@ -51,20 +33,14 @@ if submitted:
     if password != confirm:
         st.error("❌ Passwords do not match.")
         st.stop()
-    if username in config["credentials"]["usernames"]:
+    if get_user_by_username(username):
         st.warning("⚠️ Username already exists. Please choose another one.")
         st.stop()
+    if get_user_by_email(email):
+        st.warning("⚠️ Email already registered.")
+        st.stop()
 
-    hashed_password = safe_hash(password)
-    config["credentials"]["usernames"][username] = {
-        "name": name,
-        "email": email,
-        "password": hashed_password
-    }
-
-    with open(config_path, "w") as file:
-        yaml.dump(config, file, default_flow_style=False)
-
+    create_user(username=username, name=name, email=email, password=password)
     st.success("✅ Account created successfully! You can now log in.")
     st.switch_page("pages/login.py")
 
