@@ -4,19 +4,7 @@ from google.oauth2 import id_token
 from google.auth.transport import requests
 import os
 from dotenv import load_dotenv
-import yaml
-from yaml.loader import SafeLoader
-from pathlib import Path
-import hashlib
-import secrets
-
-# --- Secure hash function (SHA-256 + salt) ---
-def safe_hash(password: str) -> str:
-    if password is None:
-        password = ""
-    salt = secrets.token_hex(16)
-    hash_obj = hashlib.sha256((salt + password).encode("utf-8"))
-    return f"{salt}${hash_obj.hexdigest()}"
+from db import init_db, get_user_by_email, create_user, set_last_login  # DB functions
 
 load_dotenv()
 st.set_page_config(page_title="Google Auth", page_icon="🔑")
@@ -32,6 +20,7 @@ if "code" not in query_params:
     st.stop()
 
 try:
+    init_db()
     flow = Flow.from_client_config(
         {
             "web": {
@@ -51,28 +40,17 @@ try:
 
     email = idinfo.get("email")
     name = idinfo.get("name")
-
-    config_path = Path(__file__).parent / "users.yaml"
-    if not config_path.exists():
-        st.error("❌ users.yaml file not found on server.")
-        st.stop()
-
-    with open(config_path, "r") as f:
-        config = yaml.load(f, Loader=SafeLoader)
-
-    usernames = config["credentials"]["usernames"]
     username_key = email.split("@")[0]
 
-    if username_key not in usernames:
-        hashed_password = safe_hash("google_oauth_user")
-        usernames[username_key] = {"name": name, "email": email, "password": hashed_password}
-        with open(config_path, "w") as f:
-            yaml.dump(config, f, default_flow_style=False)
-        st.info(f"👤 New Google user added: {email}")
+    user = get_user_by_email(email)
+    if not user:
+        create_user(username=username_key, name=name, email=email, password="google_oauth_user")
 
+    user = get_user_by_email(email)
+    set_last_login(user["id"])
     st.session_state["authenticated"] = True
     st.session_state["cookie_authenticated"] = True
-    st.session_state["user"] = {"email": email, "name": name}
+    st.session_state["user"] = {"email": email, "name": name, "id": user["id"]}
     st.session_state["cookie_user"] = {"email": email, "name": name}
 
     st.success(f"✅ Logged in as {name} ({email})")
