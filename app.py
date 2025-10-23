@@ -145,48 +145,55 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
 # --- Form ---
-with st.form("input_form"):
-    # Question 1: What is that you want to improve
-    st.markdown("### What is that you want to improve?")
-    
-    # Use selectbox for cleaner UI
-    content_options = ["Headline", "Subheadline", "CTA", "Other"]
-    content_choice = st.selectbox("Choose one:", content_options)
+st.markdown("### What is that you want to improve?")
 
-    # Display text input if "Other" selected
-    if content_choice == "Other":
-        content_target = st.text_input(
-            "Please specify what you want to improve (e.g., Logo, Footer, Sidebar):",
-            placeholder="Type here..."
-        )
-    else:
-        content_target = content_choice
+# Use selectbox for cleaner UI
+content_options = ["Headline", "Subheadline", "CTA", "Other"]
+content_choice = st.selectbox("Choose one:", content_options, key="content_choice")
 
-    # Question 2: Current version
-    current_version = st.text_area(
-        "What is the current version of it?",
-        placeholder="Paste or describe the current content here..."
+# Dynamic text input for "Other"
+if content_choice == "Other":
+    content_target = st.text_input(
+        "Please specify what you want to improve (e.g., Logo, Footer, Sidebar):",
+        placeholder="Type here...",
+        key="other_content"
     )
+else:
+    # Clear the session state if previously Other was selected
+    if "other_content" in st.session_state:
+        del st.session_state["other_content"]
+    content_target = content_choice
 
-    # Question 3: Offer Definition
-    offer_definition = st.text_area(
-        "Offer Definition (Describe what your business does and what problem it solves):",
-        placeholder="Explain your business, product, or service..."
-    )
+# Question 2: Current version
+current_version = st.text_area(
+    "What is the current version of it?",
+    placeholder="Paste or describe the current content here...",
+    key="current_version"
+)
 
-    # Optional: Website Link
-    page_link = st.text_input(
-        "Website Link (optional)",
-        placeholder="https://example.com"
-    )
+# Question 3: Offer Definition
+offer_definition = st.text_area(
+    "Offer Definition (Describe what your business does and what problem it solves):",
+    placeholder="Explain your business, product, or service...",
+    key="offer_definition"
+)
 
-    # Optional: Upload file
-    uploaded_file = st.file_uploader(
-        "Upload HTML/content file (optional)",
-        type=["html", "htm", "txt"]
-    )
+# Optional: Website Link
+page_link = st.text_input(
+    "Website Link (optional)",
+    placeholder="https://example.com",
+    key="page_link"
+)
 
-    submitted = st.form_submit_button("Generate Improvement Suggestions")
+# Optional: Upload file
+uploaded_file = st.file_uploader(
+    "Upload HTML/content file (optional)",
+    type=["html", "htm", "txt"],
+    key="uploaded_file"
+)
+
+# Submit button
+submitted = st.button("Generate Improvement Suggestions")
 
 
 if submitted:
