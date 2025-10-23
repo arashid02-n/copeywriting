@@ -2,6 +2,7 @@ import streamlit as st
 import os
 from dotenv import load_dotenv
 from db import init_db, get_user_by_username, verify_hash, set_last_login  # using db.py functions
+from db_accounts import init_db, get_user_by_username, verify_hash, set_last_login
 
 # --- Initialize database ---
 init_db()
