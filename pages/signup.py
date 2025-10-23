@@ -2,7 +2,7 @@ import streamlit as st
 import re
 import os
 from dotenv import load_dotenv
-from db import init_db, create_user, get_user_by_username, get_user_by_email  # DB functions
+from db_accounts import init_db, create_user, get_user_by_username, get_user_by_email
 
 # --- Initialize database ---
 init_db()
