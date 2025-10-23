@@ -146,10 +146,31 @@ if "chat_history" not in st.session_state:
 
 # --- Form ---
 with st.form("input_form"):
-    content_target = st.text_area("What part of your website do you want to change?")
+    # Question 1: What is that you want to improve
+    st.markdown("### What is that you want to improve?")
+    content_options = ["Headline", "Subheadline", "CTA", "Other"]
+    content_choice = st.radio("Choose one:", content_options)
+
+    # If "Other" is selected, show text input
+    if content_choice == "Other":
+        content_target = st.text_input("Please specify what you want to improve:")
+    else:
+        content_target = content_choice
+
+    # Question 2: Current version
+    current_version = st.text_area("What is the current version of it?")
+
+    # Question 3: Offer Definition
+    offer_definition = st.text_area(
+        "Offer Definition (Describe what your business does and what problem it solves):"
+    )
+
+    # Optional: Website Link
     page_link = st.text_input("Website Link (optional)")
+
+    # Optional: Upload file
     uploaded_file = st.file_uploader("Upload HTML/content file (optional)", type=["html", "htm", "txt"])
-    desired_outcome = st.text_area("Describe desired improvements:")
+
     submitted = st.form_submit_button("Generate Improvement Suggestions")
 
 if submitted:
