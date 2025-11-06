@@ -175,12 +175,19 @@ with st.container():
     for i, step in enumerate(st.session_state.funnel_steps):
         st.text_input(f"Step {i+1} Name", step["name"], key=f"step_name_{i}")
         st.text_input(f"Step {i+1} Link", step["link"], key=f"step_link_{i}")
-        st.number_input(f"Step {i+1} Conversion Rate (%)", step["rate"], min_value=0.0, max_value=100.0, key=f"step_rate_{i}")
+        st.number_input(
+            f"Step {i+1} Conversion Rate (%)",
+            value=step["rate"],   # ✅ fixed line
+            min_value=0.0,
+            max_value=100.0,
+            key=f"step_rate_{i}"
+        )
         st.divider()
 
     if st.button("➕ Add Step"):
         st.session_state.funnel_steps.append({"name": "", "link": "", "rate": 0.0})
         st.rerun()
+
 
 # --- Optional file upload ---
 uploaded_file = st.file_uploader("Upload HTML/content file (optional)", type=["html", "htm", "txt"])
