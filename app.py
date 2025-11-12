@@ -177,20 +177,33 @@ with st.container():
         st.text_input(f"Step {i+1} Link", step["link"], key=f"step_link_{i}")
         st.number_input(
             f"Step {i+1} Conversion Rate (%)",
-            value=step["rate"],   # ✅ fixed line
+            value=step["rate"],
             min_value=0.0,
             max_value=100.0,
             key=f"step_rate_{i}"
         )
+        # ✅ Added checkbox for "want to improve"
+        st.checkbox(
+            "✅ I want to improve this step",
+            value=step.get("improve", False),
+            key=f"step_improve_{i}"
+        )
         st.divider()
 
     if st.button("➕ Add Step"):
-        st.session_state.funnel_steps.append({"name": "", "link": "", "rate": 0.0})
+        st.session_state.funnel_steps.append({"name": "", "link": "", "rate": 0.0, "improve": False})
         st.rerun()
 
-
-# --- Optional file upload ---
-uploaded_file = st.file_uploader("Upload HTML/content file (optional)", type=["html", "htm", "txt"])
+# --- Past Experience Section (replaces file upload) ---
+st.markdown("### 🕒 Past Experience")
+st.caption(
+    "Explain what changes you've made to your funnel in the past and what the results were. "
+    "Feel free to add as many details as you see fit:"
+)
+past_experience = st.text_area(
+    "Your past experiences:",
+    placeholder="Describe what improvements you tried before and what happened..."
+)
 
 # --- Submit button ---
 if st.button("Generate Improvement Suggestions"):
@@ -203,25 +216,20 @@ if st.button("Generate Improvement Suggestions"):
         name = st.session_state.get(f"step_name_{i}", "")
         link = st.session_state.get(f"step_link_{i}", "")
         rate = st.session_state.get(f"step_rate_{i}", 0.0)
+        improve = st.session_state.get(f"step_improve_{i}", False)
         html_content = fetch_page_content(link) if link else ""
-        funnel_data.append({"name": name, "link": link, "rate": rate})
-        funnel_html += f"\n\n---\nSTEP: {name}\nURL: {link}\nConversion: {rate}%\nContent:\n{html_content[:1000]}..."  # truncate for prompt
-
-    page_content = None
-    if uploaded_file:
-        try:
-            page_content = uploaded_file.read().decode("utf-8")
-        except Exception:
-            page_content = uploaded_file.read().decode("latin-1")
+        funnel_data.append({"name": name, "link": link, "rate": rate, "improve": improve})
+        funnel_html += f"\n\n---\nSTEP: {name}\nURL: {link}\nConversion: {rate}%\nImprove: {improve}\nContent:\n{html_content[:1000]}..."
 
     # Build prompt input
     desired_outcome = (
         f"Improve {content_target}. Current version: {current_version}\n"
         f"Offer: {offer_definition}\n"
+        f"Past Experience: {past_experience}\n"
         f"Funnel Data:\n{funnel_html}"
     )
 
-    suggestions = run_agents(content_target, "", page_content, desired_outcome)
+    suggestions = run_agents(content_target, "", None, desired_outcome)
     st.subheader("💡 AI Suggestions")
     choice = st.radio("Select one:", suggestions)
     if st.button("Apply & Update Code"):
@@ -230,6 +238,7 @@ if st.button("Generate Improvement Suggestions"):
         st.session_state.chat_history.append({
             "content_target": content_target,
             "offer_definition": offer_definition,
+            "past_experience": past_experience,
             "funnel_data": funnel_data,
             "current_version": current_version,
             "suggestions": suggestions,
@@ -243,6 +252,7 @@ if st.session_state.chat_history:
         st.markdown(f"**Interaction {i}:**")
         st.markdown(f"- **Content Target:** {chat['content_target']}")
         st.markdown(f"- **Offer Definition:** {chat['offer_definition']}")
+        st.markdown(f"- **Past Experience:** {chat['past_experience']}")
         st.markdown(f"- **Funnel Data:** {chat['funnel_data']}")
         st.markdown(f"- **Current Version:** {chat['current_version']}")
         st.markdown(f"- **Suggestions:** {chat['suggestions']}")
