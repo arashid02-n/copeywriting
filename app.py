@@ -182,7 +182,6 @@ with st.container():
             max_value=100.0,
             key=f"step_rate_{i}"
         )
-        # ✅ Added checkbox for "want to improve"
         st.checkbox(
             "✅ I want to improve this step",
             value=step.get("improve", False),
@@ -194,7 +193,7 @@ with st.container():
         st.session_state.funnel_steps.append({"name": "", "link": "", "rate": 0.0, "improve": False})
         st.rerun()
 
-# --- Past Experience Section (replaces file upload) ---
+# --- Past Experience Section ---
 st.markdown("### 🕒 Past Experience")
 st.caption(
     "Explain what changes you've made to your funnel in the past and what the results were. "
@@ -203,6 +202,16 @@ st.caption(
 past_experience = st.text_area(
     "Your past experiences:",
     placeholder="Describe what improvements you tried before and what happened..."
+)
+
+# --- Audience Characteristic ---
+st.markdown("### 🎯 Audience Characteristic")
+st.caption(
+    "Describe your usual buyers: what are their demographics, their main pain points, and where they usually find your form or offer."
+)
+audience_characteristic = st.text_area(
+    "Your audience characteristics:",
+    placeholder="e.g. Mostly small business owners aged 30-45, struggling with lead generation, usually find us via Instagram ads..."
 )
 
 # --- Submit button ---
@@ -221,12 +230,13 @@ if st.button("Generate Improvement Suggestions"):
         funnel_data.append({"name": name, "link": link, "rate": rate, "improve": improve})
         funnel_html += f"\n\n---\nSTEP: {name}\nURL: {link}\nConversion: {rate}%\nImprove: {improve}\nContent:\n{html_content[:1000]}..."
 
-    # Build prompt input
     desired_outcome = (
-        f"Improve {content_target}. Current version: {current_version}\n"
-        f"Offer: {offer_definition}\n"
-        f"Past Experience: {past_experience}\n"
-        f"Funnel Data:\n{funnel_html}"
+        f"This is a business looking to improve their conversion rate. "
+        f"They are currently working on their {content_target} page of their funnel.\n\n"
+        f"Here is their past experience as they said themselves:\n{past_experience}\n\n"
+        f"This is the content of each page of their funnel:\n{funnel_html}\n\n"
+        f"Their offer: {offer_definition}\n\n"
+        f"Their audience: {audience_characteristic}"
     )
 
     suggestions = run_agents(content_target, "", None, desired_outcome)
@@ -239,6 +249,7 @@ if st.button("Generate Improvement Suggestions"):
             "content_target": content_target,
             "offer_definition": offer_definition,
             "past_experience": past_experience,
+            "audience_characteristic": audience_characteristic,
             "funnel_data": funnel_data,
             "current_version": current_version,
             "suggestions": suggestions,
@@ -253,6 +264,7 @@ if st.session_state.chat_history:
         st.markdown(f"- **Content Target:** {chat['content_target']}")
         st.markdown(f"- **Offer Definition:** {chat['offer_definition']}")
         st.markdown(f"- **Past Experience:** {chat['past_experience']}")
+        st.markdown(f"- **Audience Characteristic:** {chat['audience_characteristic']}")
         st.markdown(f"- **Funnel Data:** {chat['funnel_data']}")
         st.markdown(f"- **Current Version:** {chat['current_version']}")
         st.markdown(f"- **Suggestions:** {chat['suggestions']}")
