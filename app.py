@@ -148,8 +148,10 @@ if "chat_history" not in st.session_state:
 if "funnel_steps" not in st.session_state:
     st.session_state.funnel_steps = []
 
-# --- Form ---
-st.markdown("### What is that you want to improve?")
+# --- Section 1: What to improve ---
+st.markdown("### 🧠 What is that you want to improve?")
+st.caption("Choose the main element you want AI to focus on improving.")
+
 content_options = ["Headline", "Subheadline", "CTA", "Other"]
 content_choice = st.selectbox("Choose one:", content_options, key="content_choice")
 
@@ -158,16 +160,23 @@ if content_choice == "Other":
 else:
     content_target = content_choice
 
+# --- Section 2: Current Version ---
+st.markdown("### 📄 Current Version")
+st.caption("Paste or describe your current copy, design, or element content.")
 current_version = st.text_area(
-    "What is the current version of it?",
+    "Current version:",
     placeholder="Paste or describe the current content here..."
 )
+
+# --- Section 3: Offer Definition ---
+st.markdown("### 💼 Offer Definition")
+st.caption("Describe what your business does and what problem it solves.")
 offer_definition = st.text_area(
-    "Offer Definition (Describe what your business does and what problem it solves):",
+    "Offer Definition:",
     placeholder="Explain your business, product, or service..."
 )
 
-# --- New Section: Funnel links ---
+# --- Section 4: Funnel Links ---
 st.markdown("### 🔗 Link of the pages")
 st.caption("Link every step of your funnel and their conversion rate:")
 
@@ -193,18 +202,18 @@ with st.container():
         st.session_state.funnel_steps.append({"name": "", "link": "", "rate": 0.0, "improve": False})
         st.rerun()
 
-# --- Past Experience Section ---
+# --- Section 5: Past Experience ---
 st.markdown("### 🕒 Past Experience")
 st.caption(
     "Explain what changes you've made to your funnel in the past and what the results were. "
-    "Feel free to add as many details as you see fit:"
+    "Feel free to add as many details as you see fit."
 )
 past_experience = st.text_area(
     "Your past experiences:",
     placeholder="Describe what improvements you tried before and what happened..."
 )
 
-# --- Audience Characteristic ---
+# --- Section 6: Audience Characteristic ---
 st.markdown("### 🎯 Audience Characteristic")
 st.caption(
     "Describe your usual buyers: what are their demographics, their main pain points, and where they usually find your form or offer."
@@ -218,7 +227,6 @@ audience_characteristic = st.text_area(
 if st.button("Generate Improvement Suggestions"):
     st.info("Generating AI suggestions... ⏳")
 
-    # Collect funnel data and fetch content
     funnel_data = []
     funnel_html = ""
     for i, step in enumerate(st.session_state.funnel_steps):
