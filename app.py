@@ -1,3 +1,6 @@
+# app.py
+# ✍️ Copywriting Improvement AI — main app with persistent login via cookies.
+
 import streamlit as st
 import requests
 from agents import run_agents
@@ -12,6 +15,16 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as grequests
 from pathlib import Path
 from db import get_credits, deduct_credits, add_prompt_record
+from streamlit_cookies_manager import EncryptedCookieManager
+
+# --- Initialize cookies (for persistent login) ---
+cookies = EncryptedCookieManager(
+    prefix="copey_ai_",
+    password=os.getenv("COOKIE_SECRET", "supersecretpassword")
+)
+
+if not cookies.ready():
+    st.stop()
 
 # --- Secure password hashing (SHA-256 + salt) ---
 def safe_hash(password: str) -> str:
@@ -43,17 +56,15 @@ GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 # --- Page setup ---
 st.set_page_config(page_title="Copywriting Improvement AI", page_icon="✍️", layout="centered")
 
-# --- Initialize session & cookies ---
+# --- Load cookie into session ---
 if "authenticated" not in st.session_state:
-    st.session_state["authenticated"] = st.session_state.get("cookie_authenticated", False)
+    st.session_state["authenticated"] = cookies.get("authenticated") == "true"
 if "user" not in st.session_state:
-    st.session_state["user"] = st.session_state.get("cookie_user", {})
-if "google_login_done" not in st.session_state:
-    st.session_state["google_login_done"] = False
+    st.session_state["user"] = cookies.get("user")
 
 # --- Handle Google OAuth redirect ---
 query_params = st.query_params
-if not st.session_state["google_login_done"] and "code" in query_params:
+if "code" in query_params and not st.session_state.get("google_login_done", False):
     code = query_params["code"][0] if isinstance(query_params["code"], list) else query_params["code"]
     try:
         st.session_state["google_login_done"] = True
@@ -112,17 +123,18 @@ if not st.session_state["google_login_done"] and "code" in query_params:
 
         conn.close()
 
+        # Save session + cookie
         st.session_state["authenticated"] = True
         st.session_state["user"] = {"email": email, "name": name}
-        st.session_state["cookie_authenticated"] = True
-        st.session_state["cookie_user"] = {"email": email, "name": name}
+        cookies["authenticated"] = "true"
+        cookies["user"] = {"email": email, "name": name}
+        cookies.save()
 
         st.success(f"✅ Logged in successfully as {name}")
         st.query_params.clear()
         st.rerun()
 
     except Exception as e:
-        st.session_state["google_login_done"] = False
         st.error(f"⚠️ Google sign-in failed: {e}")
 
 # --- Require authentication ---
@@ -135,8 +147,11 @@ user = st.session_state.get("user", {})
 user_name = user.get("name") or user.get("email") or "User"
 st.sidebar.markdown(f"**Signed in as:** {user_name}")
 if st.sidebar.button("🚪 Logout"):
-    for key in ["authenticated", "user", "cookie_authenticated", "cookie_user", "google_login_done"]:
-        st.session_state[key] = False if "auth" in key else {}
+    for key in ["authenticated", "user", "google_login_done"]:
+        st.session_state[key] = False if key == "authenticated" else {}
+    cookies["authenticated"] = "false"
+    cookies["user"] = {}
+    cookies.save()
     st.rerun()
 
 # --- Main Page ---
@@ -150,31 +165,17 @@ if "funnel_steps" not in st.session_state:
 
 # --- Section 1: What to improve ---
 st.markdown("### 🧠 What is that you want to improve?")
-st.caption("Choose the main element you want AI to focus on improving.")
-
 content_options = ["Headline", "Subheadline", "CTA", "Other"]
 content_choice = st.selectbox("Choose one:", content_options, key="content_choice")
-
-if content_choice == "Other":
-    content_target = st.text_input("Please specify what you want to improve:", placeholder="e.g. Logo, Footer, Sidebar")
-else:
-    content_target = content_choice
+content_target = st.text_input("Please specify what you want to improve:") if content_choice == "Other" else content_choice
 
 # --- Section 2: Current Version ---
 st.markdown("### 📄 Current Version")
-st.caption("Paste or describe your current copy, design, or element content.")
-current_version = st.text_area(
-    "Current version:",
-    placeholder="Paste or describe the current content here..."
-)
+current_version = st.text_area("Current version:", placeholder="Paste or describe the current content here...")
 
 # --- Section 3: Offer Definition ---
 st.markdown("### 💼 Offer Definition")
-st.caption("Describe what your business does and what problem it solves.")
-offer_definition = st.text_area(
-    "Offer Definition:",
-    placeholder="Explain your business, product, or service..."
-)
+offer_definition = st.text_area("Offer Definition:", placeholder="Explain your business, product, or service...")
 
 # --- Section 4: Funnel Links ---
 st.markdown("### 🔗 Link of the pages")
@@ -184,18 +185,8 @@ with st.container():
     for i, step in enumerate(st.session_state.funnel_steps):
         st.text_input(f"Step {i+1} Name", step["name"], key=f"step_name_{i}")
         st.text_input(f"Step {i+1} Link", step["link"], key=f"step_link_{i}")
-        st.number_input(
-            f"Step {i+1} Conversion Rate (%)",
-            value=step["rate"],
-            min_value=0.0,
-            max_value=100.0,
-            key=f"step_rate_{i}"
-        )
-        st.checkbox(
-            "✅ I want to improve this step",
-            value=step.get("improve", False),
-            key=f"step_improve_{i}"
-        )
+        st.number_input(f"Step {i+1} Conversion Rate (%)", value=step["rate"], min_value=0.0, max_value=100.0, key=f"step_rate_{i}")
+        st.checkbox("✅ I want to improve this step", value=step.get("improve", False), key=f"step_improve_{i}")
         st.divider()
 
     if st.button("➕ Add Step"):
@@ -204,29 +195,18 @@ with st.container():
 
 # --- Section 5: Past Experience ---
 st.markdown("### 🕒 Past Experience")
-st.caption(
-    "Explain what changes you've made to your funnel in the past and what the results were. "
-    "Feel free to add as many details as you see fit."
-)
-past_experience = st.text_area(
-    "Your past experiences:",
-    placeholder="Describe what improvements you tried before and what happened..."
-)
+past_experience = st.text_area("Your past experiences:", placeholder="Describe what improvements you tried before...")
 
 # --- Section 6: Audience Characteristic ---
 st.markdown("### 🎯 Audience Characteristic")
-st.caption(
-    "Describe your usual buyers: what are their demographics, their main pain points, and where they usually find your form or offer."
-)
 audience_characteristic = st.text_area(
     "Your audience characteristics:",
-    placeholder="e.g. Mostly small business owners aged 30-45, struggling with lead generation, usually find us via Instagram ads..."
+    placeholder="e.g. Mostly small business owners aged 30-45..."
 )
 
 # --- Submit button ---
 if st.button("Generate Improvement Suggestions"):
     st.info("Generating AI suggestions... ⏳")
-
     funnel_data = []
     funnel_html = ""
     for i, step in enumerate(st.session_state.funnel_steps):
@@ -241,10 +221,10 @@ if st.button("Generate Improvement Suggestions"):
     desired_outcome = (
         f"This is a business looking to improve their conversion rate. "
         f"They are currently working on their {content_target} page of their funnel.\n\n"
-        f"Here is their past experience as they said themselves:\n{past_experience}\n\n"
-        f"This is the content of each page of their funnel:\n{funnel_html}\n\n"
-        f"Their offer: {offer_definition}\n\n"
-        f"Their audience: {audience_characteristic}"
+        f"Past experience: {past_experience}\n\n"
+        f"Pages:\n{funnel_html}\n\n"
+        f"Offer: {offer_definition}\n\n"
+        f"Audience: {audience_characteristic}"
     )
 
     suggestions = run_agents(content_target, "", None, desired_outcome)
