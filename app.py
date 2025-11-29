@@ -12,6 +12,7 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as grequests
 from pathlib import Path
 from db import get_credits, deduct_credits, add_prompt_record
+from posthog_client import track_event
 
 # --- Secure password hashing (SHA-256 + salt) ---
 def safe_hash(password: str) -> str:
@@ -117,6 +118,9 @@ if not st.session_state["google_login_done"] and "code" in query_params:
         st.session_state["cookie_authenticated"] = True
         st.session_state["cookie_user"] = {"email": email, "name": name}
 
+        # --- PostHog: track login ---
+        track_event(email, "login_success", {"method": "google"})
+
         st.success(f"✅ Logged in successfully as {name}")
         st.query_params.clear()
         st.rerun()
@@ -200,6 +204,8 @@ with st.container():
 
     if st.button("➕ Add Step"):
         st.session_state.funnel_steps.append({"name": "", "link": "", "rate": 0.0, "improve": False})
+        user_id = st.session_state.get("user", {}).get("email", "anonymous")
+        track_event(user_id, "funnel_step_added", {"step_index": len(st.session_state.funnel_steps)})
         st.rerun()
 
 # --- Section 5: Past Experience ---
@@ -227,6 +233,9 @@ audience_characteristic = st.text_area(
 if st.button("Generate Improvement Suggestions"):
     st.info("Generating AI suggestions... ⏳")
 
+    user_id = st.session_state.get("user", {}).get("email", "anonymous")
+    track_event(user_id, "generate_clicked", {"content_target": content_target})
+
     funnel_data = []
     funnel_html = ""
     for i, step in enumerate(st.session_state.funnel_steps):
@@ -250,6 +259,7 @@ if st.button("Generate Improvement Suggestions"):
     suggestions = run_agents(content_target, "", None, desired_outcome)
     st.subheader("💡 AI Suggestions")
     choice = st.radio("Select one:", suggestions)
+
     if st.button("Apply & Update Code"):
         update_github_file("index.html", choice)
         st.success("✅ Code updated on GitHub!")
@@ -263,6 +273,7 @@ if st.button("Generate Improvement Suggestions"):
             "suggestions": suggestions,
             "chosen": choice,
         })
+        track_event(user_id, "suggestion_applied", {"chosen_suggestion": choice})
 
 # --- Chat History ---
 if st.session_state.chat_history:
