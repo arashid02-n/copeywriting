@@ -1,8 +1,8 @@
 import streamlit as st
 import os
 from dotenv import load_dotenv
-from db import init_db, get_user_by_username, verify_hash, set_last_login  # using db.py functions
 from db_accounts import init_db, get_user_by_username, verify_hash, set_last_login
+from posthog_client import track_event
 
 # --- Initialize database ---
 init_db()
@@ -34,10 +34,15 @@ if submitted:
             set_last_login(user_row["id"])
             st.success(f"✅ Welcome, {user_row['name']}!")
             st.session_state["rerun"] = True
-            st.query_params = st.query_params  # forces a rerun
-        else:
-            st.error("❌ Incorrect password.")
+            st.query_params = st.query_params
 
+            # --- Track login event ---
+            track_event(user_row["id"], "login_success")
+        else:
+            st.error("❌ Incorrect password")
+            if user_row:
+                track_event(user_row["id"], "login_failed")
+            
 # --- Google Login ---
 load_dotenv()
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
