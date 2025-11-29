@@ -3,6 +3,7 @@ import re
 import os
 from dotenv import load_dotenv
 from db_accounts import init_db, create_user, get_user_by_username, get_user_by_email
+from posthog_client import track_event
 
 # --- Initialize database ---
 init_db()
@@ -42,6 +43,12 @@ if submitted:
 
     create_user(username=username, name=name, email=email, password=password)
     st.success("✅ Account created successfully! You can now log in.")
+
+    # --- Track sign up event ---
+    new_user = get_user_by_username(username)
+    if new_user:
+        track_event(new_user["id"], "sign_up")
+
     st.switch_page("pages/login.py")
 
 # --- Google Sign Up ---
