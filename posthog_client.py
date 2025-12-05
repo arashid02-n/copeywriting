@@ -1,10 +1,9 @@
-# posthog_client.py
 import os
 from posthog import Posthog
 
 # Load from environment
 POSTHOG_API_KEY = os.getenv("POSTHOG_API_KEY", "YOUR_API_KEY_HERE")
-POSTHOG_HOST = os.getenv("POSTHOG_HOST", "https://copey.rashidnazari.com")
+POSTHOG_HOST = os.getenv("POSTHOG_HOST", "https://us.posthog.com")  # <-- اصلاح شد
 
 # Correct initialization
 ph = Posthog(
@@ -24,3 +23,4 @@ def track_event(user_id: str, event_name: str, properties: dict = None):
         event=event_name,
         properties=properties
     )
+
