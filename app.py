@@ -118,7 +118,6 @@ if not st.session_state["google_login_done"] and "code" in query_params:
         st.session_state["cookie_authenticated"] = True
         st.session_state["cookie_user"] = {"email": email, "name": name}
 
-        # --- PostHog: track login ---
         track_event(email, "login_success", {"method": "google"})
 
         st.success(f"✅ Logged in successfully as {name}")
@@ -134,14 +133,20 @@ if not st.session_state.get("authenticated", False):
     st.warning("⚠️ Please login first.")
     st.stop()
 
-# --- Sidebar (User info + Logout) ---
+# ---------------------------------------------------
+#                FIXED SIDEBAR (REQUESTED)
+# ---------------------------------------------------
 user = st.session_state.get("user", {})
 user_name = user.get("name") or user.get("email") or "User"
+
 st.sidebar.markdown(f"**Signed in as:** {user_name}")
+
 if st.sidebar.button("🚪 Logout"):
-    for key in ["authenticated", "user", "cookie_authenticated", "cookie_user", "google_login_done"]:
-        st.session_state[key] = False if "auth" in key else {}
+    for key in ["authenticated", "authentication_status", "user", "google_login_done", "cookie_authenticated", "cookie_user"]:
+        if key in st.session_state:
+            del st.session_state[key]
     st.rerun()
+# ---------------------------------------------------
 
 # --- Main Page ---
 st.title("✍️ Copywriting Improvement AI")
@@ -166,7 +171,6 @@ else:
 
 # --- Section 2: Current Version ---
 st.markdown("### 📄 Current Version")
-st.caption("Paste or describe your current copy, design, or element content.")
 current_version = st.text_area(
     "Current version:",
     placeholder="Paste or describe the current content here..."
@@ -174,7 +178,6 @@ current_version = st.text_area(
 
 # --- Section 3: Offer Definition ---
 st.markdown("### 💼 Offer Definition")
-st.caption("Describe what your business does and what problem it solves.")
 offer_definition = st.text_area(
     "Offer Definition:",
     placeholder="Explain your business, product, or service..."
@@ -182,7 +185,6 @@ offer_definition = st.text_area(
 
 # --- Section 4: Funnel Links ---
 st.markdown("### 🔗 Link of the pages")
-st.caption("Link every step of your funnel and their conversion rate:")
 
 with st.container():
     for i, step in enumerate(st.session_state.funnel_steps):
@@ -210,10 +212,6 @@ with st.container():
 
 # --- Section 5: Past Experience ---
 st.markdown("### 🕒 Past Experience")
-st.caption(
-    "Explain what changes you've made to your funnel in the past and what the results were. "
-    "Feel free to add as many details as you see fit."
-)
 past_experience = st.text_area(
     "Your past experiences:",
     placeholder="Describe what improvements you tried before and what happened..."
@@ -221,15 +219,12 @@ past_experience = st.text_area(
 
 # --- Section 6: Audience Characteristic ---
 st.markdown("### 🎯 Audience Characteristic")
-st.caption(
-    "Describe your usual buyers: what are their demographics, their main pain points, and where they usually find your form or offer."
-)
 audience_characteristic = st.text_area(
     "Your audience characteristics:",
-    placeholder="e.g. Mostly small business owners aged 30-45, struggling with lead generation, usually find us via Instagram ads..."
+    placeholder="Describe your audience..."
 )
 
-# --- Submit button ---
+# --- Submit ---
 if st.button("Generate Improvement Suggestions"):
     st.info("Generating AI suggestions... ⏳")
 
@@ -249,11 +244,11 @@ if st.button("Generate Improvement Suggestions"):
 
     desired_outcome = (
         f"This is a business looking to improve their conversion rate. "
-        f"They are currently working on their {content_target} page of their funnel.\n\n"
-        f"Here is their past experience as they said themselves:\n{past_experience}\n\n"
-        f"This is the content of each page of their funnel:\n{funnel_html}\n\n"
-        f"Their offer: {offer_definition}\n\n"
-        f"Their audience: {audience_characteristic}"
+        f"They are working on their {content_target}.\n\n"
+        f"Past experiences:\n{past_experience}\n\n"
+        f"Funnel pages:\n{funnel_html}\n\n"
+        f"Offer: {offer_definition}\n\n"
+        f"Audience: {audience_characteristic}"
     )
 
     suggestions = run_agents(content_target, "", None, desired_outcome)
